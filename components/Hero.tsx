@@ -11,6 +11,7 @@ const Hero: React.FC = () => {
   const [tilt, setTilt] = useState({ x: 0, y: 0, tx: 0, ty: 0 });
   const [showIndicator, setShowIndicator] = useState(false);
   const indicatorTimerRef = useRef<number | null>(null);
+  const [isMobile, setIsMobile] = useState<boolean>(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
 
   // Canvas Animation Logic
   useEffect(() => {
@@ -168,6 +169,15 @@ const Hero: React.FC = () => {
     };
   }, []);
 
+  // Track mobile breakpoint so we can disable/limit heavy parallax on small screens
+  useEffect(() => {
+    const mm = () => window.innerWidth < 768;
+    const onResize = () => setIsMobile(mm());
+    onResize();
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
   // Scroll indicator: show after 7s if user hasn't scrolled; hide on any scroll
   useEffect(() => {
     // start a 7s timer to show the indicator
@@ -196,11 +206,14 @@ const Hero: React.FC = () => {
     <section className="relative h-screen w-full overflow-hidden px-6 bg-studio-black">
 
       {/* Fixed hero overlay */}
-      <div className="fixed inset-0 z-0 flex items-center justify-center pointer-events-none">
+      {/* Make this absolutely positioned so it is clipped by the hero section. */}
+      <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none">
         {/* Interactive Mesh Background */}
         <canvas 
           ref={canvasRef} 
-          className="absolute inset-0 z-0 opacity-40 pointer-events-auto"
+          // Keep the particle canvas fixed so it spans the viewport and can appear
+          // behind later sections (contact, etc.). Pointer events disabled.
+          className="fixed inset-0 z-0 opacity-40 pointer-events-none"
         />
 
         {/* Visual container — interactive children will enable pointer events */}
@@ -208,7 +221,8 @@ const Hero: React.FC = () => {
           ref={containerRef}
           className="relative z-10 text-center flex flex-col items-center pointer-events-none w-full"
           style={{ 
-            transform: `translateY(${offset * 0.4}px)` 
+            // Disable or cap translateY on mobile so the hero doesn't slide off-screen.
+            transform: `translateY(${isMobile ? 0 : Math.min(offset * 0.4, 160)}px)` 
           }} 
         >
         

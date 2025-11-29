@@ -112,7 +112,7 @@ const TiltCard: React.FC<{ project: Project; idx: number }> = ({ project, idx })
           ref={cardRef}
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
-          className={`group relative cursor-none flex-shrink-0 w-[85vw] md:w-[60vw] lg:w-[45vw] md:h-[70vh] perspective-1000 mx-4 md:mx-8`} 
+          className={`group relative md:cursor-none flex-shrink-0 w-[85vw] md:w-[60vw] lg:w-[45vw] md:h-[70vh] perspective-1000 mx-4 md:mx-8`} 
           style={{ perspective: "1000px", aspectRatio: isMobile ? '4/3' : undefined, transform: `translate3d(${currentTranslatePct}%, 0, 0)`, opacity: Math.max(0, Math.min(1, 1 - currentTranslatePct / 120)) }}
         >
             <div 
@@ -134,15 +134,15 @@ const TiltCard: React.FC<{ project: Project; idx: number }> = ({ project, idx })
                     
                     {/* Image */}
                     <img 
-                        src={project.imageUrl} 
-                        alt={project.title} 
-                        className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700 scale-110 group-hover:scale-100"
+                      src={project.imageUrl} 
+                      alt={project.title} 
+                      className="w-full h-full object-cover md:grayscale md:group-hover:grayscale-0 transition-all duration-700 scale-110 group-hover:scale-100"
                     />
                     
                     {/* Overlay Info */}
                     <div className="absolute bottom-0 left-0 w-full p-8 bg-gradient-to-t from-black/95 via-black/70 to-transparent z-10 translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
                          <div className="flex justify-between items-end pt-6">
-                            <div>
+                           <div className="text-center md:text-left">
                                 <span className="text-accent text-xs font-mono uppercase tracking-widest mb-2 block glow-text">{project.category}</span>
                                 <h3 className="text-3xl md:text-5xl font-bold text-white mb-2 font-serif italic">{project.title}</h3>
                                 <p className="text-gray-400 font-light text-sm tracking-wide">{project.description}</p>
@@ -339,8 +339,8 @@ const Work: React.FC = () => {
                 willChange: 'transform' // Performance optimization
             }}
         >
-          {/* Intro Text Block */}
-          <div className="w-[80vw] md:w-[30vw] flex-shrink-0 mr-12 md:mr-24 opacity-80">
+           {/* Intro Text Block */}
+           <div className="w-[80vw] md:w-[30vw] flex-shrink-0 mr-12 md:mr-24 opacity-80 text-center md:text-left">
              <h3 className="text-4xl md:text-7xl font-serif italic text-white mb-8 leading-tight">
                 favourite <br/><span className="text-accent not-italic font-sans font-bold tracking-tighter">Projects</span>
              </h3>

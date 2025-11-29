@@ -72,7 +72,26 @@ const Contact: React.FC = () => {
                         /* Minor responsive tweaks */
                         @media (min-width: 768px) { #contact .social-list { align-self: flex-start; } }
                         /* Make social buttons full-width on small screens for accessibility */
-                        @media (max-width: 640px) { #contact .social-list .social-btn { width: 100%; justify-content: flex-start; padding-left: .9rem; } }
+                        @media (max-width: 640px) {
+                            /* Buttons: full width and centered text */
+                            #contact .social-list .social-btn { width: 100%; justify-content: center; padding-left: .9rem; }
+
+                            /* Stack grid into a single column and increase vertical spacing */
+                            #contact .grid { grid-template-columns: 1fr; gap: 1.25rem; }
+
+                            /* Center small info blocks and ensure reveal animations don't translate side-to-side */
+                            #contact .info-item { transform: none; text-align: center; }
+                            #contact .reveal .stagger > * { text-align: center; }
+
+                            /* Make form groups appear naturally stacked and remove the left/right translate used on desktop */
+                            #contact form .group { transform: none; opacity: 1; }
+
+                            /* Ensure the container has comfortable padding on small screens */
+                            #contact .max-w-5xl { padding-left: 1rem; padding-right: 1rem; }
+
+                            /* Reduce visual density: slightly smaller paddings inside service cards */
+                            #contact .group.p-8 { padding: 1rem; }
+                        }
                     `}</style>
 
                     {/* Header */}

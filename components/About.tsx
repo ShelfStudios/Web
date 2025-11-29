@@ -25,7 +25,7 @@ const About: React.FC = () => {
       {/* Decorative gradient blob */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-accent opacity-5 blur-[150px] pointer-events-none"></div>
 
-      <div className="max-w-7xl mx-auto relative z-10">
+      <div className="max-w-7xl mx-auto relative z-10 text-center lg:text-left">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 mb-24 items-start">
           <div>
             <div className="inline-block">
