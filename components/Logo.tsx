@@ -37,8 +37,12 @@ const Logo: React.FC<LogoProps> = ({ className = "", variant = 'full', disableGl
                 ${loaded ? 'opacity-100 blur-0 scale-100 translate-y-0' : 'opacity-0 blur-xl scale-110 translate-y-4'}
             `}
         >
+            {
+                // Resolve asset path at build/runtime so it works both locally and when
+                // the site is hosted on GitHub Pages under a subpath.
+            }
             <img 
-                src="/assets/logo.png" 
+                src={new URL('../Assets/logo.png', import.meta.url).href}
                 alt="ShelfStudios Logo" 
                 className={`
                     object-contain ${!disableGlow ? 'drop-shadow-[0_0_15px_rgba(0,240,255,0.3)]' : ''}

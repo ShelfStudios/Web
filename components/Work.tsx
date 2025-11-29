@@ -7,14 +7,14 @@ const projects: Project[] = [
     id: 1,
     title: "ItsSpeltCadan",
     category: "Content Creation",
-    imageUrl: "/Projects/ItsSpeltCadan/Project Card.png",
+    imageUrl: new URL('../Projects/ItsSpeltCadan/Project Card.png', import.meta.url).href,
     description: "Cadan's content creation journey."
   },
   {
     id: 2,
     title: "LinkTree",
     category: "Link Hub",
-    imageUrl: "/Projects/LinkTree/Project Card.png",
+    imageUrl: new URL('../Projects/LinkTree/Project Card.png', import.meta.url).href,
     description: "A central location to easily access all of my online content."
   },
   
