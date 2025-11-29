@@ -14,7 +14,8 @@ const projects: Project[] = [
     id: 2,
     title: "LinkTree",
     category: "Link Hub",
-    imageUrl: new URL('../Projects/LinkTree/Project Card.png', import.meta.url).href,
+    // Note: folder is `Linktree` (lowercase t) on disk — keep casing consistent for GitHub Pages
+    imageUrl: new URL('../Projects/Linktree/Project Card.png', import.meta.url).href,
     description: "A central location to easily access all of my online content."
   },
   
