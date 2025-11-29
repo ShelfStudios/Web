@@ -195,7 +195,7 @@ const Hero: React.FC = () => {
   return (
     <section className="relative h-screen w-full overflow-hidden px-6 bg-studio-black">
 
-      {/* Fixed hero overlay (visuals stay centered while other sections scroll over) */}
+      {/* Fixed hero overlay */}
       <div className="fixed inset-0 z-0 flex items-center justify-center pointer-events-none">
         {/* Interactive Mesh Background */}
         <canvas 
@@ -203,7 +203,7 @@ const Hero: React.FC = () => {
           className="absolute inset-0 z-0 opacity-40 pointer-events-auto"
         />
 
-        {/* Visual container (centered) — interactive children will enable pointer events */}
+        {/* Visual container — interactive children will enable pointer events */}
         <div 
           ref={containerRef}
           className="relative z-10 text-center flex flex-col items-center pointer-events-none w-full"
@@ -212,8 +212,8 @@ const Hero: React.FC = () => {
           }} 
         >
         
-        {/* Main Logo Image - Replaces Text Header */}
-        <div className="mb-12 w-[600px] md:w-[1000px] lg:w-[1200px] animate-fade-in-up opacity-0" style={{ animationDelay: '0.2s', animationFillMode: 'forwards' }}>
+        {/* Main Logo Image */}
+        <div className="mb-12 w-[300px] md:w-[700px] lg:w-[800px] animate-fade-in-up opacity-0" style={{ animationDelay: '0.2s', animationFillMode: 'forwards' }}>
           <div
             ref={logoRef}
             className="pointer-events-auto will-change-transform"

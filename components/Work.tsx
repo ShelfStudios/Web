@@ -156,8 +156,18 @@ const TiltCard: React.FC<{ project: Project; idx: number }> = ({ project, idx })
         </div>
     );
 
-    // LinkTree card is clickable link; all others are static cards
+    // Make specific project cards clickable
+    if (project.id === 1) {
+      // ItsSpeltCadan -> external shop
+      return (
+        <a href="https://speltcadan-shop.fourthwall.com/en-gbp" target="_blank" rel="noopener noreferrer" className="no-underline">
+          {cardContent}
+        </a>
+      );
+    }
+
     if (project.id === 2) {
+      // LinkTree -> external linktr.ee
       return (
         <a href="https://linktr.ee/shelfstudios" target="_blank" rel="noopener noreferrer" className="no-underline">
           {cardContent}
