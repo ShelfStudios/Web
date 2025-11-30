@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect } from 'react';
 import { Project } from '../types';
 
@@ -14,275 +13,312 @@ const projects: Project[] = [
     id: 2,
     title: "LinkTree",
     category: "Link Hub",
-    // Note: folder is `Linktree` (lowercase t) on disk — keep casing consistent for GitHub Pages
     imageUrl: new URL('../Projects/Linktree/Project Card.png', import.meta.url).href,
     description: "A central location to easily access all of my online content."
   },
-  
 ];
 
-const TiltCard: React.FC<{ project: Project; idx: number }> = ({ project, idx }) => {
+const TiltCard: React.FC<{ project: Project; idx: number; isActive?: boolean; registerEl?: (el: HTMLDivElement | null) => void }> = ({ project, idx, isActive = false, registerEl }) => {
   const cardRef = useRef<HTMLDivElement>(null);
+  const moverRef = useRef<HTMLDivElement>(null);
   const [rotation, setRotation] = useState({ x: 0, y: 0 });
   const [glowPos, setGlowPos] = useState({ x: 50, y: 50 });
   const [isHovering, setIsHovering] = useState(false);
   const [isMobile, setIsMobile] = useState<boolean>(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
-  const [isVisible, setIsVisible] = useState<boolean>(!isMobile);
 
-  // helpers
-  const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
   const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
 
-    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (!cardRef.current) return;
-        
-        const card = cardRef.current;
-        const rect = card.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        
-        const centerX = rect.width / 2;
-        const centerY = rect.height / 2;
-        
-        // Intensity of rotation
-        const rotateX = ((y - centerY) / centerY) * -15; 
-        const rotateY = ((x - centerX) / centerX) * 15;
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+    if (isMobile) return; // disable tilt math on mobile
 
-        setRotation({ x: rotateX, y: rotateY });
-        setGlowPos({ x: (x / rect.width) * 100, y: (y / rect.height) * 100 });
-        setIsHovering(true);
-    };
+    const card = cardRef.current;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
 
-    const handleMouseLeave = () => {
-        setIsHovering(false);
-        setRotation({ x: 0, y: 0 });
-    };
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
 
-    // detect mobile viewport and observe visibility for slide-in
-    useEffect(() => {
-      const mm = window.matchMedia('(max-width: 767px)');
-      const onChange = () => {
-        setIsMobile(mm.matches);
-        // if switching to desktop, ensure visible
-        if (!mm.matches) setIsVisible(true);
-      };
-      onChange();
-      mm.addEventListener?.('change', onChange);
-      return () => mm.removeEventListener?.('change', onChange);
-    }, []);
+    const rotateX = ((y - centerY) / centerY) * -22;
+    const rotateY = ((x - centerX) / centerX) * 22;
 
-    useEffect(() => {
-      // Remove previous visibility observer approach and switch to a
-      // scroll-linked RAF loop on mobile that writes transform/opacity directly
-      // to the DOM. This ensures the slide tracks the user's scroll smoothly.
-      if (!isMobile) {
-        // reset any inline transforms when leaving mobile
-        const el = cardRef.current;
-        if (el) {
-          el.style.transform = '';
-          el.style.opacity = '';
-        }
-        return;
+    setRotation({ x: rotateX, y: rotateY });
+    setGlowPos({ x: (x / rect.width) * 100, y: (y / rect.height) * 100 });
+    setIsHovering(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovering(false);
+    setRotation({ x: 0, y: 0 });
+  };
+
+  const handleMouseEnter = () => {
+    setIsHovering(true);
+  };
+
+  useEffect(() => {
+    const mm = window.matchMedia('(max-width: 767px)');
+    const onChange = () => setIsMobile(mm.matches);
+    onChange();
+    mm.addEventListener?.('change', onChange);
+    return () => mm.removeEventListener?.('change', onChange);
+  }, []);
+
+  // Ensure rotation is cleared when switching to mobile
+  useEffect(() => {
+    if (isMobile) setRotation({ x: 0, y: 0 });
+  }, [isMobile]);
+
+  useEffect(() => {
+    if (!isMobile) {
+      if (moverRef.current) {
+        moverRef.current.style.transform = '';
+        moverRef.current.style.opacity = '';
       }
+      return;
+    }
 
-      let rafId: number;
-      const el = cardRef.current;
-      const loop = () => {
-        if (!el) {
-          rafId = requestAnimationFrame(loop);
-          return;
-        }
+    const mover = moverRef.current;
+    const outer = cardRef.current;
+    if (!mover || !outer) return;
 
-        const rect = el.getBoundingClientRect();
-        const vh = window.innerHeight || document.documentElement.clientHeight;
+    mover.style.transform = 'translateX(60vw)';
+    mover.style.opacity = '0';
 
-        // progress: 0 when card is below viewport, 1 when card top reaches viewport top
-        let progress = (vh - rect.top) / vh;
-        progress = Math.max(0, Math.min(1, progress));
-
-        // slow/eased progress so movement feels heavier and follows the scroll
-        const eased = easeOutCubic(progress);
-
-        // translate from 60vw -> 0vw as eased goes 0->1 (large start to ensure noticeable motion)
-        const translateVw = (1 - eased) * 60;
-        const opacity = Math.max(0.12, eased);
-
-        el.style.transform = `translateX(${translateVw}vw)`;
-        el.style.opacity = String(opacity);
-
-        rafId = requestAnimationFrame(loop);
-      };
-
-      rafId = requestAnimationFrame(loop);
-      return () => cancelAnimationFrame(rafId);
-    }, [isMobile]);
-
-    // removed RAF per-frame animation in favor of CSS transitions on mobile
-
-    const cardContent = (
-                <div 
-                  ref={cardRef}
-                  onMouseMove={handleMouseMove}
-                  onMouseLeave={handleMouseLeave}
-                  className={`group relative md:cursor-none flex-shrink-0 w-[85vw] md:w-[60vw] lg:w-[45vw] md:h-[70vh] perspective-1000 mx-4 md:mx-8 transform ${!isMobile ? 'transition-all duration-900 ease-[cubic-bezier(0.22,1,0.36,1)]' : ''}`} 
-                  style={{ perspective: "1000px", aspectRatio: isMobile ? '4/3' : undefined, willChange: 'transform, opacity' }}
-        >
-            <div 
-                className="w-full h-full transition-transform duration-100 ease-out relative preserve-3d"
-                style={{
-                    transform: `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg) scale3d(${isHovering ? 1.02 : 1}, ${isHovering ? 1.02 : 1}, 1)`,
-                    transformStyle: 'preserve-3d'
-                }}
-            >
-                <div className="w-full h-full overflow-hidden relative border border-white/10 rounded-sm shadow-2xl bg-studio-zinc">
-                    {/* Holographic Sheen Layer */}
-                    <div 
-                        className="absolute inset-0 z-20 pointer-events-none mix-blend-overlay transition-opacity duration-500"
-                        style={{
-                            background: `radial-gradient(circle at ${glowPos.x}% ${glowPos.y}%, rgba(0,240,255,0.4), transparent 50%)`,
-                            opacity: isHovering ? 1 : 0
-                        }}
-                    />
-                    
-                    {/* Image */}
-                    <img 
-                      src={project.imageUrl} 
-                      alt={project.title} 
-                      className="w-full h-full object-cover md:grayscale md:group-hover:grayscale-0 transition-all duration-700 scale-110 group-hover:scale-100"
-                    />
-                    
-                    {/* Overlay Info: pin text to bottom and place action on far right */}
-                    <div className="absolute inset-x-0 bottom-0 w-full p-4 md:p-8 bg-gradient-to-t from-black/95 via-black/70 to-transparent z-10 translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-                        <div className="relative w-full h-full">
-                          <div className="flex flex-col justify-end h-full"> 
-                                    <div className="text-left">
-                              <span className="text-accent text-xs font-mono uppercase tracking-widest mb-2 block glow-text">{project.category}</span>
-                              <h3 className="text-2xl md:text-5xl font-bold text-white mb-2 font-serif italic">{project.title}</h3>
-                              {!isMobile && <p className="text-gray-400 font-light text-sm tracking-wide">{project.description}</p>}
-                            </div>
-                          </div>
-
-                          {/* Arrow positioned at far right bottom */}
-                          <div className="absolute right-4 md:right-8 bottom-4 md:bottom-6 flex-shrink-0 w-12 h-12 rounded-full border border-white/20 flex items-center justify-center transition-all duration-300 bg-transparent md:group-hover:bg-accent md:group-hover:text-black md:group-hover:border-accent">
-                            <span className="text-xl transform -rotate-45 md:group-hover:rotate-0 transition-transform duration-300">→</span>
-                          </div>
-                        </div>
-                      </div>
-                </div>
-            </div>
-        </div>
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const ratio = entry.intersectionRatio;
+          const eased = easeOutCubic(ratio);
+          const translateVw = (1 - eased) * 60;
+          const opacity = Math.max(0.12, eased);
+          mover.style.transform = `translateX(${translateVw}vw)`;
+          mover.style.opacity = String(opacity);
+        });
+      },
+      {
+        threshold: Array.from({ length: 20 }, (_, i) => i / 19)
+      }
     );
 
-    // Make specific project cards clickable
-    if (project.id === 1) {
-      // ItsSpeltCadan -> external shop
-      return (
-        <a href="https://speltcadan-shop.fourthwall.com/en-gbp" target="_blank" rel="noopener noreferrer" className="no-underline">
-          {cardContent}
-        </a>
-      );
-    }
+    observer.observe(outer);
+    return () => observer.disconnect();
+  }, [isMobile]);
 
-    if (project.id === 2) {
-      // LinkTree -> external linktr.ee
-      return (
-        <a href="https://linktr.ee/shelfstudios" target="_blank" rel="noopener noreferrer" className="no-underline">
-          {cardContent}
-        </a>
-      );
-    }
+  const cardContent = (
+    <div
+      ref={(el) => {
+        cardRef.current = el;
+        registerEl?.(el);
+      }}
+      onMouseEnter={handleMouseEnter}
+      data-project-id={project.id}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      className={`group relative md:cursor-none flex-shrink-0 w-[85vw] md:w-[60vw] lg:w-[45vw] md:h-[70vh] perspective-1000 mx-4 md:mx-8 ${
+        !isMobile ? 'transition-all duration-900 ease-[cubic-bezier(0.22,1,0.36,1)]' : ''
+      }`}
+      style={{
+        perspective: "1000px",
+        aspectRatio: isMobile ? '4/3' : undefined,
+        willChange: 'transform, opacity'
+      }}
+    >
+      <div ref={moverRef} className="w-full h-full">
+        <div
+          className="w-full h-full transition-transform duration-100 ease-out relative preserve-3d"
+          style={{
+              transform: `${!isMobile ? `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg) ` : ''}scale3d(${isHovering ? 1.04 : 1}, ${isHovering ? 1.04 : 1}, 1)`,
+              transformStyle: 'preserve-3d'
+            }}
+        >
+          <div className="w-full h-full overflow-hidden relative border border-white/10 rounded-sm shadow-2xl bg-studio-zinc">
+            <div
+              className="absolute inset-0 z-20 pointer-events-none mix-blend-overlay transition-opacity duration-500"
+              style={{
+                background: `radial-gradient(circle at ${glowPos.x}% ${glowPos.y}%, rgba(0,240,255,0.4), transparent 50%)`,
+                opacity: (isHovering || isActive) ? 1 : 0
+              }}
+            />
+            <img
+              src={project.imageUrl}
+              alt={project.title}
+              className={`w-full h-full object-cover transition-all duration-700 scale-110 group-hover:scale-100 ${isActive ? 'md:grayscale-0' : 'md:grayscale md:group-hover:grayscale-0'}`}
+            />
+            <div className="absolute inset-x-0 bottom-0 w-full p-4 md:p-8 bg-gradient-to-t from-black/95 via-black/70 to-transparent z-10 translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+              <div className="relative w-full h-full">
+                <div className="flex flex-col justify-end h-full">
+                  <div className="text-left">
+                    <span className="text-accent text-xs font-mono uppercase tracking-widest mb-2 block glow-text">
+                      {project.category}
+                    </span>
+                    <h3 className="text-2xl md:text-5xl font-bold text-white mb-2 font-serif italic">
+                      {project.title}
+                    </h3>
+                    {!isMobile && (
+                      <p className="text-gray-400 font-light text-sm tracking-wide">{project.description}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="absolute right-4 md:right-8 bottom-4 md:bottom-6 flex-shrink-0 w-12 h-12 rounded-full border border-white/20 flex items-center justify-center transition-all duration-300 bg-transparent md:group-hover:bg-accent md:group-hover:text-black md:group-hover:border-accent">
+                  <span className="text-xl transform -rotate-45 md:group-hover:rotate-0 transition-transform duration-300">
+                    →
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
-    return cardContent;
+  if (project.id === 1) {
+    return (
+      <a
+        href="https://speltcadan-shop.fourthwall.com/en-gbp"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="no-underline"
+      >
+        {cardContent}
+      </a>
+    );
+  }
+
+  if (project.id === 2) {
+    return (
+      <a
+        href="https://linktr.ee/shelfstudios"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="no-underline"
+      >
+        {cardContent}
+      </a>
+    );
+  }
+
+  return cardContent;
 };
 
 const Work: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
+  const cardEls = useRef<Record<number, HTMLDivElement | null>>({});
+  const [activeId, setActiveId] = useState<number | null>(null);
   const [percentage, setPercentage] = useState(0);
   const [translateX, setTranslateX] = useState(0);
-  // Default to a large height to ensure sticky works immediately while loading
   const [dynamicHeight, setDynamicHeight] = useState('400vh');
   const [isMobile, setIsMobile] = useState<boolean>(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
 
-  // ROBUST HEIGHT CALCULATION
-  // This ensures the vertical scroll length EXACTLY matches the horizontal width needed.
   useEffect(() => {
-    // detect mobile and update on resize
     const mm = window.matchMedia('(max-width: 767px)');
     const onChangeMobile = () => setIsMobile(mm.matches);
     onChangeMobile();
     mm.addEventListener?.('change', onChangeMobile);
 
     const updateDimensions = () => {
-        if (!trackRef.current) return;
-        
-        const trackWidth = trackRef.current.scrollWidth;
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
-        
-        // Distance the inner content needs to move horizontally
-        const horizontalMoveAmount = trackWidth - viewportWidth;
-        
-        // Total height = The horizontal distance + 1 viewport height (for the view itself)
-        // PLUS A BUFFER: Add 50px buffer to ensure we definitely hit the end before releasing
-        const totalHeight = horizontalMoveAmount + viewportHeight + 50;
-        
-        setDynamicHeight(`${totalHeight}px`);
+      if (!trackRef.current) return;
+
+      const trackWidth = trackRef.current.scrollWidth;
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+
+      const horizontalMoveAmount = trackWidth - viewportWidth;
+      const totalHeight = horizontalMoveAmount + viewportHeight + 50;
+
+      setDynamicHeight(`${totalHeight}px`);
     };
 
-    // Initial calculation
     updateDimensions();
 
-    // Use ResizeObserver to auto-update if images load or content changes
-    const resizeObserver = new ResizeObserver(() => {
-        updateDimensions();
-    });
-    
-    if (trackRef.current) {
-        resizeObserver.observe(trackRef.current);
-    }
-    
-    // Also listen to window resize
+    const resizeObserver = new ResizeObserver(() => updateDimensions());
+    if (trackRef.current) resizeObserver.observe(trackRef.current);
+
     window.addEventListener('resize', updateDimensions);
 
     return () => {
-        resizeObserver.disconnect();
-        window.removeEventListener('resize', updateDimensions);
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', updateDimensions);
       mm.removeEventListener?.('change', onChangeMobile);
     };
   }, []);
 
-  // SCROLL SYNC LOGIC
+  // IntersectionObserver lifecycle & registration helper
+  const observerRef = useRef<IntersectionObserver | null>(null);
+
+  useEffect(() => {
+    // clean up any existing observer
+    observerRef.current?.disconnect();
+    observerRef.current = null;
+    setActiveId(null);
+
+    if (isMobile) return;
+
+    const thresholds = Array.from({ length: 101 }, (_, i) => i / 100);
+    observerRef.current = new IntersectionObserver((entries) => {
+      // choose the entry with the highest intersectionRatio
+      let bestId: number | null = null;
+      let bestRatio = 0;
+      for (const entry of entries) {
+        const idStr = entry.target.getAttribute?.('data-project-id');
+        if (!idStr) continue;
+        const ratio = entry.intersectionRatio || 0;
+        if (ratio > bestRatio) {
+          bestRatio = ratio;
+          bestId = parseInt(idStr, 10);
+        }
+      }
+      // require high visibility but allow slight tolerance
+      if (bestId !== null && bestRatio >= 0.9) setActiveId(bestId);
+      else setActiveId(null);
+    }, { threshold: thresholds });
+
+    // start observing any already-registered elements
+    Object.values(cardEls.current).forEach((el) => {
+      if (el) observerRef.current?.observe(el);
+    });
+
+    return () => {
+      observerRef.current?.disconnect();
+      observerRef.current = null;
+    };
+  }, [isMobile]);
+
+  // registerEl factory used by TiltCard so elements are observed as they mount
+  const makeRegister = (id: number) => (el: HTMLDivElement | null) => {
+    const prev = cardEls.current[id];
+    if (prev && observerRef.current) observerRef.current.unobserve(prev);
+    if (el) {
+      cardEls.current[id] = el;
+      if (observerRef.current) observerRef.current.observe(el);
+    } else {
+      delete cardEls.current[id];
+    }
+  };
+
   useEffect(() => {
     const handleScroll = () => {
-      if (isMobile) return; // on mobile we do not sync scroll to horizontal translate
+      if (isMobile) return;
       if (!containerRef.current || !trackRef.current) return;
-      
+
       const containerRect = containerRef.current.getBoundingClientRect();
       const viewportHeight = window.innerHeight;
-      
-      // 'top' becomes negative as we scroll down. 
-      // So -top is how many pixels we have scrolled INTO the section.
+
       const scrolledDistance = -containerRect.top;
-      
-      // The scrollable distance is Total Height - Viewport Height
       const maxScrollDistance = containerRef.current.offsetHeight - viewportHeight;
-      
-      // Calculate progress (0 to 1)
+
       let progress = scrolledDistance / maxScrollDistance;
-      
-      // Clamp values strictly between 0 and 1
-      if (progress < 0) progress = 0;
-      if (progress > 1) progress = 1;
+      progress = Math.max(0, Math.min(1, progress));
 
       setPercentage(progress);
 
-      // Translate logic
       const trackWidth = trackRef.current.scrollWidth;
       const viewportWidth = window.innerWidth;
       const maxTranslate = trackWidth - viewportWidth;
-      
-      // Move the track left based on progress
+
       setTranslateX(progress * maxTranslate);
     };
 
@@ -290,26 +326,32 @@ const Work: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [dynamicHeight]);
 
-  // Mobile layout: stacked vertical cards that slide in as they are scrolled into view
   if (isMobile) {
     return (
       <section id="work" className="relative bg-studio-black py-12 px-6">
         <div className="max-w-4xl mx-auto">
           <div className="mb-12">
-             <h3 className="text-4xl font-serif italic text-white mb-4">Selected Projects</h3>
-             <p className="text-gray-400">Scroll to reveal projects — each panel will slide in from the right as you reach it.</p>
+            <h3 className="text-4xl font-serif italic text-white mb-4">Selected Projects</h3>
+            <p className="text-gray-400">
+              Scroll to reveal projects — each panel will slide in from the right as you reach it.
+            </p>
           </div>
 
           <div className="flex flex-col items-center gap-8">
             {projects.map((project, idx) => (
               <div key={project.id} className="w-full flex justify-center">
-                <TiltCard project={project} idx={idx} />
+                <TiltCard
+                  project={project}
+                  idx={idx}
+                  isActive={activeId === project.id}
+                  registerEl={makeRegister(project.id)}
+                />
               </div>
             ))}
           </div>
 
           <div className="mt-12 text-center">
-            <p className="text-accent font-mono text-xs uppercase tracking-widest">End of Selected Projects</p>
+            <a href="#projects" className="inline-block bg-accent text-black px-6 py-3 rounded-full font-mono text-sm uppercase tracking-widest">View all projects</a>
           </div>
         </div>
       </section>
@@ -317,71 +359,72 @@ const Work: React.FC = () => {
   }
 
   return (
-    <section 
-        ref={containerRef} 
-        id="work" 
-        className="relative bg-studio-black"
-        style={{ height: dynamicHeight }}
-    >
+    <section ref={containerRef} id="work" className="relative bg-studio-black" style={{ height: dynamicHeight }}>
       <div className="sticky top-0 h-screen w-full overflow-hidden flex flex-col justify-center">
-        
-        {/* Persistent "Projects" Tab / Header */}
-        <div className={`absolute top-0 left-0 w-full p-8 md:p-12 z-20 flex justify-between items-start transition-opacity duration-500 ${percentage > 0.98 ? 'opacity-0' : 'opacity-100'}`}>
-            <div className="bg-black/50 backdrop-blur-md border border-white/10 px-6 py-3 rounded-full flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-accent animate-pulse shadow-[0_0_10px_#00F0FF]"></div>
-                <span className="text-white font-mono text-sm uppercase tracking-widest">Selected Projects</span>
-                <span className="text-gray-500 font-mono text-xs border-l border-gray-700 pl-3">Lifetime</span>
-            </div>
-            
-            <div className="hidden md:block text-right">
-                <h2 className="text-6xl font-bold tracking-tighter text-white/10">ARCHIVE</h2>
-            </div>
-        </div>
 
-        {/* Scroll Progress Bar (Top) */}
-        <div className="absolute top-0 left-0 w-full h-1 bg-white/5 z-30">
-            <div 
-                className="h-full bg-accent shadow-[0_0_20px_#00F0FF] transition-all duration-75 ease-out"
-                style={{ width: `${percentage * 100}%` }}
-            ></div>
-        </div>
-
-        {/* The Moving Track */}
-        <div 
-            ref={trackRef}
-            className="flex items-center w-max px-[5vw] md:px-[10vw]"
-            style={{ 
-                transform: `translate3d(-${translateX}px, 0, 0)`,
-                willChange: 'transform' // Performance optimization
-            }}
+        <div
+          className={`absolute top-0 left-0 w-full p-8 md:p-12 z-20 flex justify-between items-start transition-opacity duration-500 ${
+            percentage > 0.98 ? 'opacity-0' : 'opacity-100'
+          }`}
         >
-           {/* Intro Text Block */}
-           <div className="w-[80vw] md:w-[30vw] flex-shrink-0 mr-12 md:mr-24 opacity-80 text-center md:text-left">
-             <h3 className="text-4xl md:text-7xl font-serif italic text-white mb-8 leading-tight">
-                favourite <br/><span className="text-accent not-italic font-sans font-bold tracking-tighter">Projects</span>
-             </h3>
-             <p className="text-xl text-gray-400 font-light max-w-md leading-relaxed">
-                Scroll to discover a selection of my favourite works and click to explore each project in detail!
-             </p>
+          <div className="bg-black/50 backdrop-blur-md border border-white/10 px-6 py-3 rounded-full flex items-center gap-3">
+            <div className="w-2 h-2 rounded-full bg-accent animate-pulse shadow-[0_0_10px_#00F0FF]"></div>
+            <span className="text-white font-mono text-sm uppercase tracking-widest">Selected Projects</span>
+            <span className="text-gray-500 font-mono text-xs border-l border-gray-700 pl-3">Lifetime</span>
+          </div>
 
+          <div className="hidden md:block text-right">
+            <h2 className="text-6xl font-bold tracking-tighter text-white/10">ARCHIVE</h2>
+          </div>
+        </div>
+
+        <div className="absolute top-0 left-0 w-full h-1 bg-white/5 z-30">
+          <div
+            className="h-full bg-accent shadow-[0_0_20px_#00F0FF] transition-all duration-75 ease-out"
+            style={{ width: `${percentage * 100}%` }}
+          ></div>
+        </div>
+
+        <div
+          ref={trackRef}
+          className="flex items-center w-max px-[5vw] md:px-[10vw]"
+          style={{
+            transform: `translate3d(-${translateX}px, 0, 0)`,
+            willChange: 'transform'
+          }}
+        >
+          <div className="w-[80vw] md:w-[30vw] flex-shrink-0 mr-12 md:mr-24 opacity-80 text-center md:text-left">
+            <h3 className="text-4xl md:text-7xl font-serif italic text-white mb-8 leading-tight">
+              favourite <br />
+              <span className="text-accent not-italic font-sans font-bold tracking-tighter">Projects</span>
+            </h3>
+            <p className="text-xl text-gray-400 font-light max-w-md leading-relaxed">
+              Scroll to discover a selection of my favourite works and click to explore each project in detail!
+            </p>
           </div>
 
           {projects.map((project, idx) => (
-            <TiltCard key={project.id} project={project} idx={idx} />
+            <TiltCard
+              key={project.id}
+              project={project}
+              idx={idx}
+              isActive={activeId === project.id}
+              registerEl={makeRegister(project.id)}
+            />
           ))}
 
-          {/* Outro / Call to Action */}
-          <div className="w-[80vw] md:w-[40vw] flex-shrink-0 flex items-center justify-center h-[60vh] border-l border-white/10 ml-12 md:ml-24 pl-12">
-             <div className="text-center group cursor-pointer">
-                 <p className="text-accent font-mono text-xs mb-4 uppercase tracking-widest">End of Selected Works</p>
-                 <a href="#contact" className="block text-5xl md:text-8xl font-serif italic text-white group-hover:text-accent transition-colors duration-300">
-                    View all <br/> Projects
-                 </a>
-                 <div className="mt-8 inline-block w-24 h-24 rounded-full border border-white/20 group-hover:bg-accent group-hover:border-accent flex items-center justify-center transition-all duration-500 group-hover:scale-110">
-                    <span className="text-3xl text-white group-hover:text-black">→</span>
-                 </div>
-             </div>
+          <div className="w-[80vw] md:w-[40vw] flex-shrink-0 flex items-center justify-center h-[60vh] border-l border-white/10 ml-auto">
+            <div className="flex flex-col items-center group cursor-pointer text-center">
+              <p className="hidden md:block text-accent font-mono text-xs mb-4 uppercase tracking-widest">End of Selected Works</p>
+              <div className="block text-5xl md:text-8xl font-serif italic text-white group-hover:text-accent transition-colors duration-300">
+                View all <br /> Projects
+              </div>
+              <a href="#projects" className="mt-6 md:mt-8 mx-auto block w-24 h-24 rounded-full border border-white/20 group-hover:bg-accent group-hover:border-accent flex items-center justify-center transition-all duration-500 group-hover:scale-110">
+                <span className="text-3xl text-white group-hover:text-black">→</span>
+              </a>
+            </div>
           </div>
+
         </div>
       </div>
     </section>

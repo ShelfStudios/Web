@@ -2,20 +2,25 @@
 import React, { useState, useEffect } from 'react';
 
 interface LogoProps {
-  className?: string;
-  variant?: 'full' | 'icon';
-  disableGlow?: boolean;
+    className?: string;
+    variant?: 'full' | 'icon';
+    disableGlow?: boolean;
     size?: string;
+    skipReveal?: boolean;
 }
 
-const Logo: React.FC<LogoProps> = ({ className = "", variant = 'full', disableGlow = false, size = 'h-12' }) => {
-  const [loaded, setLoaded] = useState(false);
+const Logo: React.FC<LogoProps> = ({ className = "", variant = 'full', disableGlow = false, size = 'h-12', skipReveal = false }) => {
+    const [loaded, setLoaded] = useState(false);
 
-  useEffect(() => {
-    // Trigger animation after mount
-    const timer = setTimeout(() => setLoaded(true), 100);
-    return () => clearTimeout(timer);
-  }, []);
+    useEffect(() => {
+        if (skipReveal) {
+            setLoaded(true);
+            return;
+        }
+        // Trigger animation after mount
+        const timer = setTimeout(() => setLoaded(true), 100);
+        return () => clearTimeout(timer);
+    }, [skipReveal]);
 
   return (
     <div className={`relative flex items-center justify-center ${className}`}>

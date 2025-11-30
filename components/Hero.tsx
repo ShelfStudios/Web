@@ -13,12 +13,34 @@ const Hero: React.FC = () => {
   const [showIndicator, setShowIndicator] = useState(false);
   const indicatorTimerRef = useRef<number | null>(null);
   const [isMobile, setIsMobile] = useState<boolean>(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+  const textRef = useRef<HTMLDivElement | null>(null);
+  const [allowTextInline, setAllowTextInline] = useState(false);
+  const logoWrapperRef = useRef<HTMLDivElement | null>(null);
+  const [allowLogoInline, setAllowLogoInline] = useState(false);
+  const [logoVisible, setLogoVisible] = useState(false);
 
   // ===============================
   // PARTICLE BACKGROUND CANVAS
   // ===============================
   useEffect(() => {
-    const canvas = canvasRef.current;
+    // Show the logo slightly before enabling JS inline transforms to avoid
+    // visible repositioning. We fade the wrapper in smoothly, then enable
+    // the inline transform used for parallax/tilt.
+    const showDelay = 200; // ms before starting the fade-in
+    const enableInlineDelay = 380; // ms before enabling inline transforms
+
+    const showTimer = window.setTimeout(() => setLogoVisible(true), showDelay) as unknown as number;
+    const inlineTimer = window.setTimeout(() => setAllowLogoInline(true), enableInlineDelay) as unknown as number;
+
+    return () => {
+      window.clearTimeout(showTimer as number);
+      window.clearTimeout(inlineTimer as number);
+    };
+  }, []);
+
+    // Canvas particle background effect
+    useEffect(() => {
+      const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -256,6 +278,30 @@ const Hero: React.FC = () => {
     // Start RAF loop immediately (no artificial delay)
     rafIdRef.current = requestAnimationFrame(loop);
 
+    // Wait for the CSS entry animation of the text block to finish
+    // before applying inline transform so the keyframe animation isn't blocked.
+    const textEl = textRef.current;
+    let animationListener: ((e: AnimationEvent) => void) | null = null;
+    let fallbackTimer: number | null = null;
+    if (textEl) {
+      animationListener = (e: AnimationEvent) => {
+        // only react to the fadeInUp animation (name may vary), but accept any animationend
+        setAllowTextInline(true);
+        if (animationListener && textEl) textEl.removeEventListener('animationend', animationListener as any);
+        if (fallbackTimer) { window.clearTimeout(fallbackTimer); fallbackTimer = null; }
+      };
+      textEl.addEventListener('animationend', animationListener as any);
+
+      // safety fallback: ensure we enable inline transforms after 1200ms
+      fallbackTimer = window.setTimeout(() => {
+        setAllowTextInline(true);
+        if (animationListener && textEl) textEl.removeEventListener('animationend', animationListener as any);
+      }, 1200) as unknown as number;
+    } else {
+      // if text element not found, enable immediately
+      setAllowTextInline(true);
+    }
+
     return () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('mousemove', handleMouseMoveDom);
@@ -323,38 +369,42 @@ const Hero: React.FC = () => {
         >
 
           {/* =============== LOGO =============== */}
-          <div className="mb-12 w-[300px] md:w-[700px] lg:w-[800px] animate-fade-in-up"
-            style={{ animationDelay: '0.2s', animationFillMode: 'forwards' }}>
+          <div ref={logoWrapperRef} className="mb-12 w-[300px] md:w-[700px] lg:w-[800px]"
+            style={{
+              animationFillMode: 'forwards',
+              opacity: logoVisible ? '1' : '0',
+              transform: logoVisible ? 'translateY(0)' : 'translateY(8px)',
+              transition: 'opacity 220ms ease, transform 220ms ease'
+            }}>
             <div
               ref={logoRef}
               className="pointer-events-auto will-change-transform"
               style={{
-                transform: `translateY(var(--logo-ty,0px)) 
-                             scale(var(--logo-scale,1)) 
-                             perspective(800px)
-                             translate3d(${tilt.tx}px, ${tilt.ty}px, 0)
-                             rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
+                transform: allowLogoInline
+                  ? `translateY(var(--logo-ty,0px)) scale(var(--logo-scale,1)) perspective(800px) translate3d(${tilt.tx}px, ${tilt.ty}px, 0) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`
+                  : undefined,
                 transition: smoothTransition,
                 transformStyle: 'preserve-3d',
                 opacity: 'var(--element-opacity,1)',
                 filter: 'brightness(calc(1 - var(--hero-dim)*0.8))'
               }}
             >
-              <Logo variant="full" />
+              <Logo variant="full" skipReveal />
             </div>
           </div>
 
           {/* =============== TEXT =============== */}
           <div
             className="max-w-xl text-gray-400 text-lg md:text-xl leading-relaxed animate-fade-in-up mb-12 flex flex-col items-center"
-            style={{
-              animationDelay: '0.5s',
-              animationFillMode: 'forwards',
-              transform: 'translateY(var(--text-ty,0px))',
-              transition: smoothTransition,
-              opacity: 'var(--element-opacity,1)',
-              filter: 'brightness(calc(1 - var(--hero-dim)*0.8))'
-            }}
+              ref={textRef}
+              style={{
+                animationDelay: '0s',
+                animationFillMode: 'forwards',
+                transform: allowTextInline ? 'translateY(var(--text-ty,0px))' : undefined,
+                transition: smoothTransition,
+                opacity: 'var(--element-opacity,1)',
+                filter: 'brightness(calc(1 - var(--hero-dim)*0.8))'
+              }}
           >
             <span className="mb-2">Just a nerd with a computer</span>
 
@@ -373,7 +423,9 @@ const Hero: React.FC = () => {
                   "Wow isnt this cool",
                   "I don't make shelves",
                   "062",
-                  "Cadan is a genius -Einstein Probably"
+                  "Cadan is a genius -Einstein Probably",
+                  "Shelf yourself - Stay a while!",
+                  "Shelf: Stronger than your last relationship"
                 ]}
                 className="text-accent"
                 hover={true}
