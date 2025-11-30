@@ -131,6 +131,28 @@
           -webkit-overflow-scrolling: touch;
           overscroll-behavior-y: contain;
           touch-action: pan-y;
+          -webkit-tap-highlight-color: transparent;
+        }
+        
+        /* Ensure smooth scrolling */
+        * {
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+        }
+        
+        /* Mobile card animation - smooth and non-blocking */
+        .mobile-card-hidden {
+          transform: translate3d(40px, 0, 0);
+          opacity: 0;
+          transition: transform 800ms cubic-bezier(0.16, 1, 0.3, 1), 
+                      opacity 800ms cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        .mobile-card-visible {
+          transform: translate3d(0, 0, 0);
+          opacity: 1;
+          transition: transform 800ms cubic-bezier(0.16, 1, 0.3, 1), 
+                      opacity 800ms cubic-bezier(0.16, 1, 0.3, 1);
         }
       }
 

@@ -25,6 +25,7 @@ const TiltCard: React.FC<{ project: Project; idx: number; isActive?: boolean; re
   const [glowPos, setGlowPos] = useState({ x: 50, y: 50 });
   const [isHovering, setIsHovering] = useState(false);
   const [isMobile, setIsMobile] = useState<boolean>(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+  const [isVisible, setIsVisible] = useState(false);
 
   const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
 
@@ -76,55 +77,38 @@ const TiltCard: React.FC<{ project: Project; idx: number; isActive?: boolean; re
         moverRef.current.style.transform = '';
         moverRef.current.style.opacity = '';
       }
+      setIsVisible(false);
       return;
     }
 
-    const mover = moverRef.current;
     const outer = cardRef.current;
-    if (!mover || !outer) return;
+    if (!outer) return;
 
-    mover.style.transform = 'translateX(60vw)';
-    mover.style.opacity = '0';
-
-    let rafId: number | null = null;
-    let lastRatio = -1;
-
+    // Simple one-time trigger when card enters viewport
+    let hasTriggered = false;
     const observer = new IntersectionObserver(
       (entries) => {
-        // Get the most recent entry
-        const entry = entries[entries.length - 1];
-        const ratio = entry.intersectionRatio;
-        
-        // Throttle updates using requestAnimationFrame
-        if (rafId !== null) {
-          cancelAnimationFrame(rafId);
-        }
-        
-        rafId = requestAnimationFrame(() => {
-          // Only update if ratio changed significantly to reduce updates
-          if (lastRatio >= 0 && Math.abs(ratio - lastRatio) < 0.02) return;
-          lastRatio = ratio;
-          
-          const eased = easeOutCubic(ratio);
-          const translateVw = (1 - eased) * 60;
-          const opacity = Math.max(0.12, eased);
-          mover.style.transform = `translate3d(${translateVw}vw, 0, 0)`;
-          mover.style.opacity = String(opacity);
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && !hasTriggered) {
+            hasTriggered = true;
+            // Use requestAnimationFrame to ensure smooth animation start
+            requestAnimationFrame(() => {
+              setIsVisible(true);
+            });
+            // Disconnect after first trigger to prevent re-triggering
+            observer.disconnect();
+          }
         });
       },
       {
-        // Reduced thresholds for better mobile performance
-        threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
-        rootMargin: '0px 0px -10% 0px'
+        threshold: 0.1, // Trigger when 10% visible
+        rootMargin: '0px 0px -5% 0px' // Small bottom margin to trigger slightly before fully visible
       }
     );
 
     observer.observe(outer);
     return () => {
       observer.disconnect();
-      if (rafId !== null) {
-        cancelAnimationFrame(rafId);
-      }
     };
   }, [isMobile]);
 
@@ -144,27 +128,25 @@ const TiltCard: React.FC<{ project: Project; idx: number; isActive?: boolean; re
       style={{
         perspective: "1000px",
         aspectRatio: isMobile ? '4/3' : undefined,
-        willChange: isMobile ? 'auto' : 'transform, opacity'
+        willChange: isMobile ? 'auto' : 'transform, opacity',
+        ...(isMobile ? {
+          touchAction: 'pan-y',
+          WebkitTouchCallout: 'none'
+        } : {})
       }}
     >
       <div 
         ref={moverRef} 
-        className="w-full h-full"
+        className={`w-full h-full ${isMobile && isVisible ? 'mobile-card-visible' : isMobile ? 'mobile-card-hidden' : ''}`}
         style={isMobile ? { 
-          backfaceVisibility: 'hidden',
-          WebkitBackfaceVisibility: 'hidden',
-          transform: 'translateZ(0)'
+          willChange: isVisible ? 'auto' : 'transform, opacity'
         } : {}}
       >
         <div
           className="w-full h-full transition-transform duration-100 ease-out relative preserve-3d"
           style={{
               transform: `${!isMobile ? `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg) ` : ''}scale3d(${isHovering ? 1.04 : 1}, ${isHovering ? 1.04 : 1}, 1)`,
-              transformStyle: 'preserve-3d',
-              ...(isMobile ? {
-                backfaceVisibility: 'hidden',
-                WebkitBackfaceVisibility: 'hidden'
-              } : {})
+              transformStyle: 'preserve-3d'
             }}
         >
           <div className="w-full h-full overflow-hidden relative border border-white/10 rounded-sm shadow-2xl bg-studio-zinc">
@@ -366,8 +348,8 @@ const Work: React.FC = () => {
         id="work" 
         className="relative bg-studio-black py-12 px-6"
         style={{
-          WebkitOverflowScrolling: 'touch',
-          transform: 'translateZ(0)'
+          touchAction: 'pan-y',
+          WebkitOverflowScrolling: 'touch'
         }}
       >
         <div className="max-w-4xl mx-auto">
@@ -383,11 +365,6 @@ const Work: React.FC = () => {
               <div 
                 key={project.id} 
                 className="w-full flex justify-center"
-                style={{
-                  transform: 'translateZ(0)',
-                  backfaceVisibility: 'hidden',
-                  WebkitBackfaceVisibility: 'hidden'
-                }}
               >
                 <TiltCard
                   project={project}
