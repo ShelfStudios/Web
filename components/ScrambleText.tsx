@@ -76,6 +76,67 @@ const ScrambleText: React.FC<ScrambleTextProps> = ({ text, className = "", hover
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Mobile-only: auto-refresh scramble every 5s
+  const autoRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const mm = window.matchMedia('(max-width: 767px)');
+
+    const startAuto = () => {
+      if (autoRef.current) return;
+      autoRef.current = window.setInterval(() => {
+        if (isHovered) return; // avoid interrupting hover-driven scrambles
+        if (messages.length <= 1) return;
+
+        let next = targetRef.current;
+        let attempts = 0;
+        while (next === targetRef.current && attempts < 10) {
+          next = messages[Math.floor(Math.random() * messages.length)];
+          attempts += 1;
+        }
+
+        targetRef.current = next;
+        scramble(next);
+      }, 4000) as unknown as number;
+    };
+
+    const stopAuto = () => {
+      if (autoRef.current) {
+        window.clearInterval(autoRef.current as number);
+        autoRef.current = null;
+      }
+    };
+
+    // start only if currently on mobile
+    if (mm.matches) startAuto();
+
+    const onChange = () => {
+      if (mm.matches) startAuto(); else stopAuto();
+    };
+
+    try {
+      mm.addEventListener?.('change', onChange);
+    } catch (err) {
+      // some environments may not support addEventListener on MediaQueryList
+      try {
+        // @ts-ignore - legacy API
+        mm.addListener?.(onChange);
+      } catch (e) {
+        console.warn('matchMedia change listener could not be attached', e);
+      }
+    }
+
+    window.addEventListener('resize', onChange);
+
+    return () => {
+      stopAuto();
+      try { mm.removeEventListener?.('change', onChange); } catch (e) { try { mm.removeListener?.(onChange); } catch (ee) {/* ignore */} }
+      window.removeEventListener('resize', onChange);
+    };
+  }, [messages, isHovered]);
+
+  
   const handleMouseEnter = () => {
     if (hover) {
         setIsHovered(true);

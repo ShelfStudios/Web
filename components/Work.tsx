@@ -28,8 +28,6 @@ const TiltCard: React.FC<{ project: Project; idx: number }> = ({ project, idx })
   const [isHovering, setIsHovering] = useState(false);
   const [isMobile, setIsMobile] = useState<boolean>(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
   const [isVisible, setIsVisible] = useState<boolean>(!isMobile);
-  const [targetTranslatePct, setTargetTranslatePct] = useState<number>(isMobile ? 100 : 0);
-  const [currentTranslatePct, setCurrentTranslatePct] = useState<number>(isMobile ? 100 : 0);
 
   // helpers
   const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -74,46 +72,60 @@ const TiltCard: React.FC<{ project: Project; idx: number }> = ({ project, idx })
     }, []);
 
     useEffect(() => {
-      if (!isMobile) return;
+      // Remove previous visibility observer approach and switch to a
+      // scroll-linked RAF loop on mobile that writes transform/opacity directly
+      // to the DOM. This ensures the slide tracks the user's scroll smoothly.
+      if (!isMobile) {
+        // reset any inline transforms when leaving mobile
+        const el = cardRef.current;
+        if (el) {
+          el.style.transform = '';
+          el.style.opacity = '';
+        }
+        return;
+      }
+
+      let rafId: number;
       const el = cardRef.current;
-      if (!el) return;
-      const obs = new IntersectionObserver((entries) => {
-        entries.forEach(e => {
-          const ratio = e.intersectionRatio; // 0..1
-          const eased = easeOutCubic(Math.max(0, Math.min(1, ratio)));
-          // translate percent maps 100% (off-screen) at eased=0 to 0% at eased=1
-          const pct = Math.max(0, Math.min(100, (1 - eased) * 100));
-          setTargetTranslatePct(pct);
-          setIsVisible(ratio > 0.02);
-        });
-      }, { threshold: [0, 0.02, 0.05, 0.1, 0.2, 0.35, 0.55, 0.75, 0.9, 1] });
-      obs.observe(el);
-      return () => obs.disconnect();
+      const loop = () => {
+        if (!el) {
+          rafId = requestAnimationFrame(loop);
+          return;
+        }
+
+        const rect = el.getBoundingClientRect();
+        const vh = window.innerHeight || document.documentElement.clientHeight;
+
+        // progress: 0 when card is below viewport, 1 when card top reaches viewport top
+        let progress = (vh - rect.top) / vh;
+        progress = Math.max(0, Math.min(1, progress));
+
+        // slow/eased progress so movement feels heavier and follows the scroll
+        const eased = easeOutCubic(progress);
+
+        // translate from 60vw -> 0vw as eased goes 0->1 (large start to ensure noticeable motion)
+        const translateVw = (1 - eased) * 60;
+        const opacity = Math.max(0.12, eased);
+
+        el.style.transform = `translateX(${translateVw}vw)`;
+        el.style.opacity = String(opacity);
+
+        rafId = requestAnimationFrame(loop);
+      };
+
+      rafId = requestAnimationFrame(loop);
+      return () => cancelAnimationFrame(rafId);
     }, [isMobile]);
 
-    // smooth animation toward targetTranslatePct using RAF
-    useEffect(() => {
-      let rafId: number | null = null;
-      const step = () => {
-        setCurrentTranslatePct(prev => {
-          const next = lerp(prev, targetTranslatePct, 0.12);
-          return Math.abs(next - prev) < 0.05 ? targetTranslatePct : next;
-        });
-        rafId = requestAnimationFrame(step);
-      };
-      rafId = requestAnimationFrame(step);
-      return () => {
-        if (rafId) cancelAnimationFrame(rafId);
-      };
-    }, [targetTranslatePct]);
+    // removed RAF per-frame animation in favor of CSS transitions on mobile
 
     const cardContent = (
-        <div 
-          ref={cardRef}
-          onMouseMove={handleMouseMove}
-          onMouseLeave={handleMouseLeave}
-          className={`group relative md:cursor-none flex-shrink-0 w-[85vw] md:w-[60vw] lg:w-[45vw] md:h-[70vh] perspective-1000 mx-4 md:mx-8`} 
-          style={{ perspective: "1000px", aspectRatio: isMobile ? '4/3' : undefined, transform: `translate3d(${currentTranslatePct}%, 0, 0)`, opacity: Math.max(0, Math.min(1, 1 - currentTranslatePct / 120)) }}
+                <div 
+                  ref={cardRef}
+                  onMouseMove={handleMouseMove}
+                  onMouseLeave={handleMouseLeave}
+                  className={`group relative md:cursor-none flex-shrink-0 w-[85vw] md:w-[60vw] lg:w-[45vw] md:h-[70vh] perspective-1000 mx-4 md:mx-8 transform ${!isMobile ? 'transition-all duration-900 ease-[cubic-bezier(0.22,1,0.36,1)]' : ''}`} 
+                  style={{ perspective: "1000px", aspectRatio: isMobile ? '4/3' : undefined, willChange: 'transform, opacity' }}
         >
             <div 
                 className="w-full h-full transition-transform duration-100 ease-out relative preserve-3d"
@@ -139,19 +151,23 @@ const TiltCard: React.FC<{ project: Project; idx: number }> = ({ project, idx })
                       className="w-full h-full object-cover md:grayscale md:group-hover:grayscale-0 transition-all duration-700 scale-110 group-hover:scale-100"
                     />
                     
-                    {/* Overlay Info */}
-                    <div className="absolute bottom-0 left-0 w-full p-8 bg-gradient-to-t from-black/95 via-black/70 to-transparent z-10 translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
-                         <div className="flex justify-between items-end pt-6">
-                           <div className="text-center md:text-left">
-                                <span className="text-accent text-xs font-mono uppercase tracking-widest mb-2 block glow-text">{project.category}</span>
-                                <h3 className="text-3xl md:text-5xl font-bold text-white mb-2 font-serif italic">{project.title}</h3>
-                                <p className="text-gray-400 font-light text-sm tracking-wide">{project.description}</p>
+                    {/* Overlay Info: pin text to bottom and place action on far right */}
+                    <div className="absolute inset-x-0 bottom-0 w-full p-4 md:p-8 bg-gradient-to-t from-black/95 via-black/70 to-transparent z-10 translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+                        <div className="relative w-full h-full">
+                          <div className="flex flex-col justify-end h-full"> 
+                                    <div className="text-left">
+                              <span className="text-accent text-xs font-mono uppercase tracking-widest mb-2 block glow-text">{project.category}</span>
+                              <h3 className="text-2xl md:text-5xl font-bold text-white mb-2 font-serif italic">{project.title}</h3>
+                              {!isMobile && <p className="text-gray-400 font-light text-sm tracking-wide">{project.description}</p>}
                             </div>
-                            <div className="w-12 h-12 rounded-full border border-white/20 flex items-center justify-center group-hover:bg-accent group-hover:text-black group-hover:border-accent transition-all duration-300">
-                                <span className="text-xl transform -rotate-45 group-hover:rotate-0 transition-transform duration-300">→</span>
-                            </div>
+                          </div>
+
+                          {/* Arrow positioned at far right bottom */}
+                          <div className="absolute right-4 md:right-8 bottom-4 md:bottom-6 flex-shrink-0 w-12 h-12 rounded-full border border-white/20 flex items-center justify-center transition-all duration-300 bg-transparent md:group-hover:bg-accent md:group-hover:text-black md:group-hover:border-accent">
+                            <span className="text-xl transform -rotate-45 md:group-hover:rotate-0 transition-transform duration-300">→</span>
+                          </div>
                         </div>
-                    </div>
+                      </div>
                 </div>
             </div>
         </div>

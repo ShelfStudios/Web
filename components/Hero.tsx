@@ -1,11 +1,12 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import Logo from './Logo';
 import ScrambleText from './ScrambleText';
 
 const Hero: React.FC = () => {
-  const [offset, setOffset] = useState(0);
+  const offsetRef = useRef(0);
+  const targetOffsetRef = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const logoRef = useRef<HTMLDivElement>(null);
   const [tilt, setTilt] = useState({ x: 0, y: 0, tx: 0, ty: 0 });
@@ -13,7 +14,9 @@ const Hero: React.FC = () => {
   const indicatorTimerRef = useRef<number | null>(null);
   const [isMobile, setIsMobile] = useState<boolean>(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
 
-  // Canvas Animation Logic
+  // ===============================
+  // PARTICLE BACKGROUND CANVAS
+  // ===============================
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -26,11 +29,10 @@ const Hero: React.FC = () => {
     canvas.height = height;
 
     const particles: { x: number; y: number; vx: number; vy: number; baseX: number; baseY: number }[] = [];
-    const particleCount = width < 768 ? 50 : 100; // Fewer particles on mobile
+    const particleCount = width < 768 ? 50 : 100;
     const connectionDistance = 150;
     const mouseRadius = 200;
 
-    // Initialize particles in a grid/random mix
     for (let i = 0; i < particleCount; i++) {
       const x = Math.random() * width;
       const y = Math.random() * height;
@@ -57,18 +59,14 @@ const Hero: React.FC = () => {
 
     const animate = () => {
       ctx.clearRect(0, 0, width, height);
-      
-      // Update and draw particles
+
       particles.forEach(p => {
-        // Base movement
         p.x += p.vx;
         p.y += p.vy;
 
-        // Bounce off walls (soft)
         if (p.x < 0 || p.x > width) p.vx *= -1;
         if (p.y < 0 || p.y > height) p.vy *= -1;
 
-        // Mouse interaction (Repulsion)
         const dx = mouseX - p.x;
         const dy = mouseY - p.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
@@ -77,32 +75,25 @@ const Hero: React.FC = () => {
           const forceDirectionX = dx / distance;
           const forceDirectionY = dy / distance;
           const force = (mouseRadius - distance) / mouseRadius;
-          const directionX = forceDirectionX * force * 5; // Strength
+          const directionX = forceDirectionX * force * 5;
           const directionY = forceDirectionY * force * 5;
 
           p.x -= directionX;
           p.y -= directionY;
         } else {
-            // Return to base drift slightly
-            if (p.x !== p.baseX) {
-                p.x -= (p.x - p.baseX) * 0.01;
-            }
-            if (p.y !== p.baseY) {
-                p.y -= (p.y - p.baseY) * 0.01;
-            }
+          if (p.x !== p.baseX) p.x -= (p.x - p.baseX) * 0.01;
+          if (p.y !== p.baseY) p.y -= (p.y - p.baseY) * 0.01;
         }
 
-        // Draw particle
         ctx.beginPath();
         ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
-        ctx.fillStyle = '#a1054eff';
+        ctx.fillStyle = '#bd1b9ac5';
         ctx.fill();
       });
 
-      // Draw connections
       ctx.strokeStyle = 'rgba(255, 0, 212, 0.15)';
       ctx.lineWidth = 1;
-      
+
       for (let i = 0; i < particles.length; i++) {
         for (let j = i; j < particles.length; j++) {
           const dx = particles[i].x - particles[j].x;
@@ -138,38 +129,142 @@ const Hero: React.FC = () => {
     };
   }, []);
 
-  // Parallax Text Logic
+  // ===============================
+  // PARALLAX + SCROLL DIMMING
+  // ===============================
   useEffect(() => {
-    const handleScroll = () => setOffset(window.scrollY);
+    const handleScroll = () => {
+      targetOffsetRef.current = window.scrollY;
+    };
 
     const handleMouseMoveDom = (e: MouseEvent) => {
-      // Compute logo tilt relative to logo center
       if (!logoRef.current) return;
       const rect = logoRef.current.getBoundingClientRect();
       const cx = rect.left + rect.width / 2;
       const cy = rect.top + rect.height / 2;
-      const dx = (e.clientX - cx) / (rect.width / 2); // -1 .. 1
-      const dy = (e.clientY - cy) / (rect.height / 2); // -1 .. 1
+      const dx = (e.clientX - cx) / (rect.width / 2);
+      const dy = (e.clientY - cy) / (rect.height / 2);
       const clamp = (v: number) => Math.max(-1, Math.min(1, v));
-      const maxDeg = 8; // maximum tilt in degrees
-      const maxTranslate = 10; // px translation for subtle follow
+
+      const maxDeg = 8;
+      const maxTranslate = 10;
+
       const rotY = clamp(dx) * maxDeg;
       const rotX = -clamp(dy) * maxDeg;
       const tx = clamp(dx) * maxTranslate;
       const ty = clamp(dy) * maxTranslate;
+
       setTilt({ x: rotX, y: rotY, tx, ty });
     };
 
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     window.addEventListener('mousemove', handleMouseMoveDom);
+
+    const rafIdRef = { current: 0 } as { current: number };
+    let animated = window.scrollY;
+    targetOffsetRef.current = animated;
+
+    const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+    const writeVars = (vars: Record<string, string | number>) => {
+      const el = containerRef.current;
+      if (!el) return;
+      for (const k in vars) el.style.setProperty(k, String(vars[k]));
+    };
+
+    let sectionTopCached = 0;
+    let aboutTopCached = 0;
+
+    const cachePositions = () => {
+      const section = sectionRef.current as HTMLElement | null;
+      const aboutEl = document.getElementById('about');
+      if (!section || !aboutEl) return;
+
+      const sectionRect = section.getBoundingClientRect();
+      const aboutRect = aboutEl.getBoundingClientRect();
+
+      sectionTopCached = window.scrollY + sectionRect.top;
+      aboutTopCached = window.scrollY + aboutRect.top;
+    };
+
+    cachePositions();
+    window.addEventListener('resize', cachePositions);
+
+    const loop = () => {
+      const target = targetOffsetRef.current || 0;
+      animated = lerp(animated, target, 0.18);
+
+      offsetRef.current = animated;
+
+      let fadeOpacityLocal = 1;
+      let hideProgressLocal = 0;
+
+      if (isMobile) {
+        fadeOpacityLocal = 1;
+        hideProgressLocal = 0;
+      } else if (sectionTopCached && aboutTopCached) {
+        const fadeStart = sectionTopCached + (aboutTopCached - sectionTopCached) * 0.5;
+        const fadeEnd = aboutTopCached;
+        const range = fadeEnd - fadeStart;
+
+        if (range <= 0) {
+          fadeOpacityLocal = 0;
+          hideProgressLocal = 1;
+        } else {
+          const progress = (animated - fadeStart) / range;
+          const clamped = Math.max(0, Math.min(1, progress));
+          fadeOpacityLocal = 1 - clamped;
+          hideProgressLocal = clamped;
+        }
+      } else {
+        fadeOpacityLocal = Math.max(0.2, 1 - animated / 800);
+        hideProgressLocal = Math.min(1, animated / 800);
+      }
+
+      const baseMultiplier = isMobile ? 0.25 : 1.2;
+      const extraShift = window.innerHeight * 0.9;
+
+      const translated = isMobile
+        ? Math.min(animated * baseMultiplier, 220)
+        : Math.min(animated * baseMultiplier + hideProgressLocal * extraShift, window.innerHeight * 1.8);
+
+      const blurAmountLocal = Math.pow(hideProgressLocal, 0.6) * 12;
+      const brightnessLocal = 1 - hideProgressLocal * 0.6;
+
+      const elementOpacityLocal = Math.max(0, fadeOpacityLocal * (1 - hideProgressLocal * 0.95));
+      const logoScaleLocal = 1 - hideProgressLocal * 0.08;
+      const logoOffsetYLocal = -hideProgressLocal * 60;
+      const textOffsetYLocal = -hideProgressLocal * 40;
+      const buttonOffsetYLocal = -hideProgressLocal * 28;
+
+      writeVars({
+        '--hero-translate': `${translated}px`,
+        '--hero-blur': `${blurAmountLocal}px`,
+        '--hero-brightness': String(brightnessLocal),
+        '--hero-opacity': String(fadeOpacityLocal),
+        '--hero-dim': String(hideProgressLocal * 0.6),
+        '--element-opacity': String(elementOpacityLocal),
+        '--logo-scale': String(logoScaleLocal),
+        '--logo-ty': `${logoOffsetYLocal}px`,
+        '--text-ty': `${textOffsetYLocal}px`,
+        '--button-ty': `${buttonOffsetYLocal}px`
+      });
+
+      rafIdRef.current = requestAnimationFrame(loop);
+    };
+
+    // Start RAF loop immediately (no artificial delay)
+    rafIdRef.current = requestAnimationFrame(loop);
+
     return () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('mousemove', handleMouseMoveDom);
+      window.removeEventListener('resize', cachePositions);
+      cancelAnimationFrame(rafIdRef.current);
       setTilt({ x: 0, y: 0, tx: 0, ty: 0 });
     };
   }, []);
 
-  // Track mobile breakpoint so we can disable/limit heavy parallax on small screens
   useEffect(() => {
     const mm = () => window.innerWidth < 768;
     const onResize = () => setIsMobile(mm());
@@ -178,101 +273,159 @@ const Hero: React.FC = () => {
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  // Scroll indicator: show after 7s if user hasn't scrolled; hide on any scroll
+  const smoothTransition =
+    'transform 320ms cubic-bezier(0.33,1,0.68,1), opacity 220ms linear, filter 220ms linear';
+
+  // ===============================
+  // SCROLL INDICATOR TIMER
+  // ===============================
   useEffect(() => {
-    // start a 7s timer to show the indicator
     indicatorTimerRef.current = window.setTimeout(() => setShowIndicator(true), 7000) as unknown as number;
 
     const handleUserScroll = () => {
-      // user scrolled, hide indicator and clear timer
       if (indicatorTimerRef.current) {
         window.clearTimeout(indicatorTimerRef.current as number);
         indicatorTimerRef.current = null;
       }
       setShowIndicator(false);
-      // remove listener after first scroll
       window.removeEventListener('scroll', handleUserScroll);
     };
 
     window.addEventListener('scroll', handleUserScroll, { passive: true });
 
     return () => {
-      if (indicatorTimerRef.current) window.clearTimeout(indicatorTimerRef.current as number);
+      if (indicatorTimerRef.current)
+        window.clearTimeout(indicatorTimerRef.current as number);
       window.removeEventListener('scroll', handleUserScroll);
     };
   }, []);
 
   return (
-    <section className="relative h-screen w-full overflow-hidden px-6 bg-studio-black">
+    <section ref={sectionRef} className="relative h-screen w-full overflow-hidden px-6 bg-studio-black">
 
-      {/* Fixed hero overlay */}
-      {/* Make this absolutely positioned so it is clipped by the hero section. */}
       <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none">
-        {/* Interactive Mesh Background */}
+
         <canvas 
-          ref={canvasRef} 
-          // Keep the particle canvas fixed so it spans the viewport and can appear
-          // behind later sections (contact, etc.). Pointer events disabled.
+          ref={canvasRef}
           className="fixed inset-0 z-0 opacity-40 pointer-events-none"
         />
 
-        {/* Visual container — interactive children will enable pointer events */}
-        <div 
+        <div
           ref={containerRef}
-          className="relative z-10 text-center flex flex-col items-center pointer-events-none w-full"
-          style={{ 
-            // Disable or cap translateY on mobile so the hero doesn't slide off-screen.
-            transform: `translateY(${isMobile ? 0 : Math.min(offset * 0.4, 160)}px)` 
-          }} 
+          className="relative z-0 text-center flex flex-col items-center pointer-events-none w-full"
+          style={{
+            transform: 'translateY(var(--hero-translate,0px))',
+            opacity: 'var(--hero-opacity,1)',
+            filter: 'blur(var(--hero-blur,0px)) brightness(var(--hero-brightness,1))',
+            willChange: 'transform, opacity, filter',
+            transition: 'opacity 220ms linear, transform 160ms linear, filter 220ms linear'
+          }}
         >
-        
-        {/* Main Logo Image */}
-        <div className="mb-12 w-[300px] md:w-[700px] lg:w-[800px] animate-fade-in-up opacity-0" style={{ animationDelay: '0.2s', animationFillMode: 'forwards' }}>
+
+          {/* =============== LOGO =============== */}
+          <div className="mb-12 w-[300px] md:w-[700px] lg:w-[800px] animate-fade-in-up"
+            style={{ animationDelay: '0.2s', animationFillMode: 'forwards' }}>
+            <div
+              ref={logoRef}
+              className="pointer-events-auto will-change-transform"
+              style={{
+                transform: `translateY(var(--logo-ty,0px)) 
+                             scale(var(--logo-scale,1)) 
+                             perspective(800px)
+                             translate3d(${tilt.tx}px, ${tilt.ty}px, 0)
+                             rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
+                transition: smoothTransition,
+                transformStyle: 'preserve-3d',
+                opacity: 'var(--element-opacity,1)',
+                filter: 'brightness(calc(1 - var(--hero-dim)*0.8))'
+              }}
+            >
+              <Logo variant="full" />
+            </div>
+          </div>
+
+          {/* =============== TEXT =============== */}
           <div
-            ref={logoRef}
-            className="pointer-events-auto will-change-transform"
+            className="max-w-xl text-gray-400 text-lg md:text-xl leading-relaxed animate-fade-in-up mb-12 flex flex-col items-center"
             style={{
-              transform: `perspective(800px) translate3d(${tilt.tx}px, ${tilt.ty}px, 0) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
-              transition: 'transform 140ms ease-out',
-              transformStyle: 'preserve-3d'
+              animationDelay: '0.5s',
+              animationFillMode: 'forwards',
+              transform: 'translateY(var(--text-ty,0px))',
+              transition: smoothTransition,
+              opacity: 'var(--element-opacity,1)',
+              filter: 'brightness(calc(1 - var(--hero-dim)*0.8))'
             }}
           >
-            <Logo variant="full" />
+            <span className="mb-2">Just a nerd with a computer</span>
+
+            <div
+              className="pointer-events-auto"
+              style={{
+                transition: smoothTransition,
+                opacity: 'var(--element-opacity,1)',
+                filter: 'brightness(calc(1 - var(--hero-dim)*0.8))'
+              }}
+            >
+              <ScrambleText
+                text={[
+                  "Call me Cadan :)",
+                  "Questions? — shelfstudios@gmail.com",
+                  "Wow isnt this cool",
+                  "I don't make shelves",
+                  "062",
+                  "Cadan is a genius -Einstein Probably"
+                ]}
+                className="text-accent"
+                hover={true}
+              />
+            </div>
+          </div>
+
+          {/* =============== BUTTON =============== */}
+          <div
+            className="animate-fade-in-up pointer-events-auto"
+            style={{
+              animationDelay: '0.8s',
+              animationFillMode: 'both',
+              transform: 'translateY(var(--button-ty,0px))',
+              transition: smoothTransition,
+              opacity: 'var(--element-opacity,1)',
+              filter: 'brightness(calc(1 - var(--hero-dim)*0.8))'
+            }}
+          >
+            <a
+              href="#work"
+              className="group relative inline-block border border-white/20 px-10 py-4 text-sm tracking-widest uppercase text-white overflow-hidden transition-all duration-300 hover:border-accent hover:shadow-glow"
+            >
+              <span className="relative z-10 font-bold group-hover:text-black transition-colors duration-300">
+                View Projects
+              </span>
+              <div className="absolute inset-0 bg-accent transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
+            </a>
           </div>
         </div>
-        
-        <div className="max-w-xl text-gray-400 text-lg md:text-xl leading-relaxed animate-fade-in-up mb-12 opacity-0 flex flex-col items-center" style={{ animationDelay: '0.5s', animationFillMode: 'forwards' }}>
-            <span className="mb-2">Just a nerd with a computer</span>
-            <div className="pointer-events-auto">
-                <ScrambleText
-                  text={[
-                    "Call me Cadan :)",
-                    "Questions? — shelfstudios@gmail.com",
-                    "Wow isnt this cool",
-                    "I don't make shelves",
-                    "062",
-                    "Cadan is a genius -Einstein Probably"
-                  ]}
-                  className="text-accent"
-                  hover={true}
-                />
-            </div>
-        </div>
 
-        <div className="animate-fade-in-up opacity-0 pointer-events-auto" style={{ animationDelay: '0.8s', animationFillMode: 'both' }}>
-            <a 
-                href="#work"
-                className="group relative inline-block border border-white/20 px-10 py-4 text-sm tracking-widest uppercase text-white overflow-hidden transition-all duration-300 hover:border-accent hover:shadow-glow"
-            >
-                <span className="relative z-10 font-bold group-hover:text-black transition-colors duration-300">View Projects</span>
-                <div className="absolute inset-0 bg-accent transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
-            </a>
-        </div>
-        </div>
-        <div className={`absolute bottom-10 left-1/2 -translate-x-1/2 text-gray-500 z-10 transition-opacity duration-500 flex flex-col items-center ${showIndicator ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
-          <span className="text-[10px] uppercase tracking-widest mb-2 block text-center">Scroll</span>
-          <svg className="block mx-auto" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M7 13l5 5 5-5M7 6l5 5 5-5"/>
+        {/* Scroll indicator */}
+        <div
+          className={`absolute bottom-10 left-1/2 -translate-x-1/2 text-gray-500 z-10 transition-opacity duration-500 flex flex-col items-center ${
+            showIndicator ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          }`}
+        >
+          <span className="text-[10px] uppercase tracking-widest mb-2 block text-center">
+            Scroll
+          </span>
+          <svg
+            className="block mx-auto"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M7 13l5 5 5-5M7 6l5 5 5-5" />
           </svg>
         </div>
       </div>

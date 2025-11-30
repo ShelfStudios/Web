@@ -21,14 +21,13 @@ const services: ServiceItem[] = [
 
 const About: React.FC = () => {
   return (
-    <section id="about" className="py-24 md:py-32 px-6 md:px-12 bg-studio-zinc text-white relative overflow-hidden">
-      {/* Decorative gradient blob */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-accent opacity-5 blur-[150px] pointer-events-none"></div>
+    <section id="about" className="py-24 md:py-32 px-6 md:px-12 bg-studio-zinc text-white relative overflow-hidden z-50">
+      {/* decorative gradient removed to avoid stray glow overlapping content */}
 
       <div className="max-w-7xl mx-auto relative z-10 text-center lg:text-left">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 mb-24 items-start">
           <div>
-            <div className="inline-block">
+            <div className="inline-block relative z-40">
               <h2 className="text-4xl md:text-6xl mb-6 text-white typewriter font-mono" style={{ fontFamily: `'JMH Typewriter', "Courier New", Courier, monospace`, animationDelay: '200ms' }}>Who am I?</h2>
               <div className="w-full h-1 bg-accent shadow-glow mb-6 animate-fade-in-up" style={{ animationDelay: '380ms' }}></div>
             </div>
@@ -50,14 +49,14 @@ const About: React.FC = () => {
             {services.map((service, index) => (
               <div
                 key={index}
-                className={`group p-8 border border-white/10 bg-black/50 hover:border-accent/50 hover:bg-black transition-transform duration-500 hover:shadow-glow rounded-sm animate-fade-in-up`} 
+                className={`group p-8 border border-accent/50 bg-black shadow-glow transition-transform duration-500 rounded-sm animate-fade-in-up md:border-white/10 md:bg-black/50 md:!shadow-none md:hover:border-accent/50 md:hover:bg-black md:hover:shadow-glow`} 
                 style={{ animationDelay: `${index * 120}ms`, transformStyle: 'preserve-3d' }}
               >
-                <h3 className="text-2xl font-bold mb-4 text-white group-hover:text-accent transition-colors">{service.title}</h3>
-                <p className="text-gray-400 mb-6 leading-relaxed group-hover:text-gray-200 transition-colors">{service.description}</p>
+                <h3 className="text-2xl font-bold mb-4 text-accent md:text-white md:group-hover:text-accent transition-colors">{service.title}</h3>
+                <p className="text-gray-200 md:text-gray-400 mb-6 leading-relaxed md:group-hover:text-gray-200 transition-colors">{service.description}</p>
                 <div className="flex flex-wrap gap-2">
                   {service.tags.map(tag => (
-                    <span key={tag} className="text-[10px] uppercase tracking-wider border border-white/10 px-2 py-1 text-gray-500 font-mono group-hover:border-accent group-hover:text-accent transition-colors">
+                    <span key={tag} className="text-[10px] uppercase tracking-wider border border-accent/50 px-2 py-1 text-accent font-mono transition-colors md:border-white/10 md:text-gray-500 md:group-hover:border-accent md:group-hover:text-accent">
                       {tag}
                     </span>
                   ))}
