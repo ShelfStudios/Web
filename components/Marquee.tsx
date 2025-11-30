@@ -21,7 +21,6 @@ const Marquee: React.FC = () => {
       ro = new ResizeObserver(setWidth);
       ro.observe(group);
     } catch (err) {
-      // ResizeObserver might not be available in some environments — fall back
       console.warn('ResizeObserver not available or failed, marquee will fallback to window resize.', err);
     }
 
@@ -65,7 +64,6 @@ const Marquee: React.FC = () => {
           100% { transform: translateX(calc(var(--group-width) * -1)); }
         }
 
-        /* Mobile-only: slightly faster marquee (duration can be adjusted) */
         @media (max-width: 767px) {
           .animate-marquee { --marquee-duration: 160s; }
         }

@@ -9,7 +9,6 @@ import Marquee from './components/Marquee';
 import MarqueeMid from './components/MarqueeMid';
 
 function App() {
-  // Global Scroll Observer for animations
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
@@ -18,11 +17,10 @@ function App() {
         }
       });
     }, {
-      threshold: 0.1, // Trigger when 10% of the element is visible
+      threshold: 0.1,
       rootMargin: "0px 0px -50px 0px"
     });
 
-    // Select all elements with the 'reveal' class
     const revealElements = document.querySelectorAll('.reveal');
     revealElements.forEach((el) => observer.observe(el));
 

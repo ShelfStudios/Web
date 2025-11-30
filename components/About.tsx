@@ -22,8 +22,6 @@ const services: ServiceItem[] = [
 const About: React.FC = () => {
   return (
     <section id="about" className="py-24 md:py-32 px-6 md:px-12 bg-studio-zinc text-white relative overflow-hidden z-50">
-      {/* decorative gradient removed to avoid stray glow overlapping content */}
-
       <div className="max-w-7xl mx-auto relative z-10 text-center lg:text-left">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 mb-24 items-start">
           <div>
@@ -44,7 +42,6 @@ const About: React.FC = () => {
             </p>
           </div>
 
-          {/* Services column: vertical stack on large screens, falls below on mobile */}
           <div className="flex flex-col gap-6">
             {services.map((service, index) => (
               <div

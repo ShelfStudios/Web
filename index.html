@@ -54,7 +54,6 @@
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;800&family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
-      /* Local typewriter font */
       @font-face {
         font-family: 'JMH Typewriter';
         src: url('/Fonts/JMH Typewriter.ttf') format('truetype');
@@ -63,7 +62,6 @@
         font-display: swap;
       }
 
-      /* Typewriter animation for headings */
       .typewriter {
         display: inline-block;
         overflow: hidden;
@@ -84,32 +82,27 @@
         50% { border-color: rgba(255,255,255,0.85); }
       }
 
-      /* Highlight variables for About section - edit these values to change colors */
       :root {
-        --hl-creativity: #da36b1; /* red-pink */
-        --hl-gaming: #da36b1;    /* cyan */
-        --hl-tech: #da36b1;      /* warm yellow */
+        --hl-creativity: #da36b1;
+        --hl-gaming: #da36b1;
+        --hl-tech: #da36b1;
       }
 
       .hl-creativity { color: var(--hl-creativity); }
       .hl-gaming { color: var(--hl-gaming); }
       .hl-tech { color: var(--hl-tech); }
 
-      /* Hide scrollbar */
       .no-scrollbar::-webkit-scrollbar { display: none; }
       .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       
-      /* Only hide the native cursor on devices that actually have a fine pointer
-         (desktop with mouse). Mobile/touch devices will keep the native touch cursor. */
       @media (pointer: fine) {
         body {
           background-color: #050505;
           color: #E0E0E0;
-          cursor: none; /* Hide default cursor on fine-pointer devices only */
-          overflow-x: hidden; /* Prevent horizontal scrolling globally */
+          cursor: none;
+          overflow-x: hidden;
         }
       }
-      /* Fallback for coarse pointers (touch): keep background and colors but default cursor */
       @media (pointer: coarse), (hover: none) {
         body {
           background-color: #050505;
@@ -120,7 +113,6 @@
         }
       }
       
-      /* Mobile scroll optimizations */
       @media (max-width: 767px) {
         html {
           -webkit-overflow-scrolling: touch;
@@ -134,33 +126,36 @@
           -webkit-tap-highlight-color: transparent;
         }
         
-        /* Ensure smooth scrolling */
         * {
           -webkit-font-smoothing: antialiased;
           -moz-osx-font-smoothing: grayscale;
         }
         
-        /* Mobile card animation - smooth fade-in with scale and subtle lift */
-        .mobile-card-hidden {
-          opacity: 0;
-          transform: translate3d(0, 24px, 0) scale(0.96);
-          filter: blur(4px);
-          transition: opacity 1000ms cubic-bezier(0.19, 1, 0.22, 1),
-                      transform 1000ms cubic-bezier(0.19, 1, 0.22, 1),
-                      filter 1000ms cubic-bezier(0.19, 1, 0.22, 1);
+        .mobile-scramble-text {
+          font-variant-numeric: tabular-nums;
+          letter-spacing: 0.05em;
+          word-spacing: 0;
+          white-space: nowrap;
+          display: inline-block;
+          vertical-align: baseline;
+          transform: translateZ(0);
+          backface-visibility: hidden;
+          -webkit-backface-visibility: hidden;
+          contain: layout style;
+          will-change: contents;
+          text-rendering: optimizeSpeed;
+          -webkit-font-smoothing: antialiased;
+          text-align: center;
         }
         
-        .mobile-card-visible {
-          opacity: 1;
-          transform: translate3d(0, 0, 0) scale(1);
-          filter: blur(0px);
-          transition: opacity 1000ms cubic-bezier(0.19, 1, 0.22, 1),
-                      transform 1000ms cubic-bezier(0.19, 1, 0.22, 1),
-                      filter 1000ms cubic-bezier(0.19, 1, 0.22, 1);
+        @media (max-width: 767px) {
+          .mobile-scramble-text {
+            min-height: 1.2em;
+            line-height: 1.2;
+          }
         }
       }
 
-      /* Scroll Animation Classes */
       .reveal {
         opacity: 0;
         transform: translateY(50px);
@@ -178,7 +173,6 @@
       .reveal-delay-300 { transition-delay: 300ms; }
       .reveal-delay-500 { transition-delay: 500ms; }
 
-      /* Smooth selection */
       ::selection {
         background: #00F0FF;
         color: #000;
@@ -200,24 +194,19 @@
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
     
-    <!-- User Provided Cursor Script -->
     <script>
     (function() {
         'use strict';
 
-        // Don't initialize the custom cursor on touch / coarse-pointer devices.
-        // This avoids interfering with finger interactions on mobile.
         if (typeof window !== 'undefined') {
           try {
             const isCoarse = window.matchMedia && (window.matchMedia('(pointer: coarse)').matches || window.matchMedia('(hover: none)').matches);
             const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
             if (isCoarse || hasTouch) return;
           } catch (e) {
-            // If matchMedia fails for any reason, fall back to initializing.
           }
         }
 
-        // Add cursor styles
         const cursorStyle = document.createElement('style');
         cursorStyle.id = 'custom-cursor-styles';
         cursorStyle.textContent = `
@@ -283,7 +272,6 @@
         `;
         document.head.appendChild(cursorStyle);
     
-        // Variables
         let dot = null;
         let circle = null;
         let mouseX = 0;
@@ -293,15 +281,12 @@
         let circleX = 0;
         let circleY = 0;
     
-        // Initialize cursor
         function initCursor() {
-            // Remove existing cursors if any
             const oldDot = document.querySelector('.custom-cursor-dot');
             const oldCircle = document.querySelector('.custom-cursor');
             if(oldDot) oldDot.remove();
             if(oldCircle) oldCircle.remove();
 
-            // Create cursor elements
             dot = document.createElement('div');
             dot.className = 'custom-cursor-dot';
             document.body.appendChild(dot);
@@ -310,7 +295,6 @@
             circle.className = 'custom-cursor';
             document.body.appendChild(circle);
     
-            // Track mouse position
             document.addEventListener('mousemove', (e) => {
                 mouseX = e.clientX;
                 mouseY = e.clientY;
@@ -318,7 +302,6 @@
                 if (circle) circle.style.opacity = '1';
             });
     
-            // Hide cursor when mouse leaves window
             document.addEventListener('mouseleave', () => {
                 if (dot) dot.style.opacity = '0';
                 if (circle) circle.style.opacity = '0';
@@ -329,16 +312,13 @@
                 if (circle) circle.style.opacity = '1';
             });
     
-            // Animation loop
             function animate() {
                 if (dot && circle) {
-                    // Dot follows mouse more closely
                     dotX += (mouseX - dotX) * 0.25;
                     dotY += (mouseY - dotY) * 0.25;
                     dot.style.left = dotX + 'px';
                     dot.style.top = dotY + 'px';
     
-                    // Circle follows dot with more lag
                     circleX += (dotX - circleX) * 0.12;
                     circleY += (dotY - circleY) * 0.12;
                     circle.style.left = circleX + 'px';
@@ -349,7 +329,6 @@
             }
             animate();
     
-            // Hover effects on clickable elements
             const selectors = 'a, button, [role="button"], input, textarea, .btn, .work-item, .work-link, .contact-link, .social-link, [onclick]';
             
             function attachHover() {
@@ -382,7 +361,6 @@
                 subtree: true
             });
     
-            // Click effects
             document.addEventListener('mousedown', () => {
                 if (dot) dot.classList.add('click');
                 if (circle) circle.classList.add('click');
@@ -394,7 +372,6 @@
             });
         }
     
-        // Initialize when DOM is ready
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', initCursor);
         } else {

@@ -25,13 +25,13 @@ const TiltCard: React.FC<{ project: Project; idx: number; isActive?: boolean; re
   const [glowPos, setGlowPos] = useState({ x: 50, y: 50 });
   const [isHovering, setIsHovering] = useState(false);
   const [isMobile, setIsMobile] = useState<boolean>(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
-  const [isVisible, setIsVisible] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
 
   const easeOutCubic = (t: number) => 1 - Math.pow(1 - t, 3);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!cardRef.current) return;
-    if (isMobile) return; // disable tilt math on mobile
+    if (isMobile) return;
 
     const card = cardRef.current;
     const rect = card.getBoundingClientRect();
@@ -66,7 +66,6 @@ const TiltCard: React.FC<{ project: Project; idx: number; isActive?: boolean; re
     return () => mm.removeEventListener?.('change', onChange);
   }, []);
 
-  // Ensure rotation is cleared when switching to mobile
   useEffect(() => {
     if (isMobile) setRotation({ x: 0, y: 0 });
   }, [isMobile]);
@@ -76,43 +75,59 @@ const TiltCard: React.FC<{ project: Project; idx: number; isActive?: boolean; re
       if (moverRef.current) {
         moverRef.current.style.transform = '';
         moverRef.current.style.opacity = '';
+        moverRef.current.style.filter = '';
       }
-      setIsVisible(false);
+      setScrollProgress(0);
       return;
     }
 
-    const outer = cardRef.current;
-    if (!outer) return;
+    const card = cardRef.current;
+    if (!card) return;
 
-    // Smooth fade-in animation trigger
-    let hasTriggered = false;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting && !hasTriggered) {
-            hasTriggered = true;
-            // Small delay for stagger effect if multiple cards
-            setTimeout(() => {
-              requestAnimationFrame(() => {
-                setIsVisible(true);
-              });
-            }, idx * 100);
-            // Disconnect after first trigger
-            observer.disconnect();
-          }
-        });
-      },
-      {
-        threshold: 0.15,
-        rootMargin: '0px 0px -10% 0px'
-      }
-    );
+    let rafId: number | null = null;
 
-    observer.observe(outer);
-    return () => {
-      observer.disconnect();
+    const updateScrollProgress = () => {
+      if (!card) return;
+
+      const rect = card.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const viewportCenter = viewportHeight / 2;
+      
+      const cardCenter = rect.top + rect.height / 2;
+      const distanceFromCenter = cardCenter - viewportCenter;
+      
+      const animationRange = viewportHeight * 0.8;
+      const normalizedDistance = distanceFromCenter / animationRange;
+      
+      let progress = 1 - (normalizedDistance + 0.5);
+      progress = Math.max(0, Math.min(1, progress));
+      
+      const eased = easeOutCubic(progress);
+      
+      setScrollProgress(eased);
+      
+      rafId = null;
     };
-  }, [isMobile, idx]);
+
+    const handleScroll = () => {
+      if (rafId === null) {
+        rafId = requestAnimationFrame(updateScrollProgress);
+      }
+    };
+
+    updateScrollProgress();
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', updateScrollProgress, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', updateScrollProgress);
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+    };
+  }, [isMobile]);
 
   const cardContent = (
     <div
@@ -139,9 +154,29 @@ const TiltCard: React.FC<{ project: Project; idx: number; isActive?: boolean; re
     >
       <div 
         ref={moverRef} 
-        className={`w-full h-full ${isMobile && isVisible ? 'mobile-card-visible' : isMobile ? 'mobile-card-hidden' : ''}`}
-        style={isMobile ? { 
-          willChange: isVisible ? 'auto' : 'transform, opacity, filter'
+        className="w-full h-full"
+        style={isMobile ? {
+          opacity: Math.max(0, Math.min(1, scrollProgress * 1.2)),
+          transform: `
+            translate3d(
+              ${(1 - scrollProgress) * 30 * (idx % 2 === 0 ? 1 : -1)}px, 
+              ${(1 - scrollProgress) * 50}px, 
+              ${(1 - scrollProgress) * -100}px
+            ) 
+            scale(${0.85 + scrollProgress * 0.15}) 
+            rotateY(${(1 - scrollProgress) * 15 * (idx % 2 === 0 ? 1 : -1)}deg)
+            rotateX(${(1 - scrollProgress) * 8}deg)
+          `,
+          filter: `
+            blur(${(1 - scrollProgress) * 10}px) 
+            brightness(${0.6 + scrollProgress * 0.4})
+            contrast(${0.9 + scrollProgress * 0.1})
+          `,
+          willChange: 'transform, opacity, filter',
+          backfaceVisibility: 'hidden',
+          WebkitBackfaceVisibility: 'hidden',
+          transformStyle: 'preserve-3d',
+          transition: 'none'
         } : {}}
       >
         <div
@@ -264,11 +299,9 @@ const Work: React.FC = () => {
     };
   }, []);
 
-  // IntersectionObserver lifecycle & registration helper
   const observerRef = useRef<IntersectionObserver | null>(null);
 
   useEffect(() => {
-    // clean up any existing observer
     observerRef.current?.disconnect();
     observerRef.current = null;
     setActiveId(null);
@@ -277,7 +310,6 @@ const Work: React.FC = () => {
 
     const thresholds = Array.from({ length: 101 }, (_, i) => i / 100);
     observerRef.current = new IntersectionObserver((entries) => {
-      // choose the entry with the highest intersectionRatio
       let bestId: number | null = null;
       let bestRatio = 0;
       for (const entry of entries) {
@@ -289,12 +321,10 @@ const Work: React.FC = () => {
           bestId = parseInt(idStr, 10);
         }
       }
-      // require high visibility but allow slight tolerance
       if (bestId !== null && bestRatio >= 0.9) setActiveId(bestId);
       else setActiveId(null);
     }, { threshold: thresholds });
 
-    // start observing any already-registered elements
     Object.values(cardEls.current).forEach((el) => {
       if (el) observerRef.current?.observe(el);
     });
@@ -305,7 +335,6 @@ const Work: React.FC = () => {
     };
   }, [isMobile]);
 
-  // registerEl factory used by TiltCard so elements are observed as they mount
   const makeRegister = (id: number) => (el: HTMLDivElement | null) => {
     const prev = cardEls.current[id];
     if (prev && observerRef.current) observerRef.current.unobserve(prev);

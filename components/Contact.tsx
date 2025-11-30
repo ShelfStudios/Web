@@ -59,11 +59,10 @@ const Contact: React.FC = () => {
 
   @media (max-width: 768px) {
     #contact .social-offset {
-      top: 0; /* no offset on mobile */
+      top: 0;
     }
   }
 
-  /* Base button (desktop sizes) */
   #contact .social-btn {
     display: inline-flex;
     align-items: center;
@@ -80,7 +79,6 @@ const Contact: React.FC = () => {
     margin-bottom: 0.9rem;
   }
 
-  /* Email glow */
   #contact .social-btn.email:hover {
     box-shadow: 
         0 0 22px rgba(229, 255, 0, 0.75),
@@ -89,7 +87,6 @@ const Contact: React.FC = () => {
     background: linear-gradient(90deg, rgba(255, 251, 0, 0.1), rgba(205, 220, 0, 0.06));
   }
 
-  /* IG hover */
   #contact .social-btn.ig:hover {
     box-shadow:
       0 0 22px rgba(225,48,108,0.75),
@@ -98,7 +95,6 @@ const Contact: React.FC = () => {
     background: linear-gradient(90deg, rgba(225,48,108,0.1), rgba(131,58,180,0.06));
   }
 
-  /* LinkTree hover */
   #contact .social-btn.lt:hover {
     box-shadow:
       0 0 22px rgba(0,200,83,0.75),
@@ -107,7 +103,6 @@ const Contact: React.FC = () => {
     background: linear-gradient(90deg, rgba(0,200,83,0.1), rgba(0,150,60,0.06));
   }
 
-  /* X hover */
   #contact .social-btn.x:hover {
     box-shadow:
       0 0 22px rgba(29,160,242,0.75),
@@ -116,7 +111,6 @@ const Contact: React.FC = () => {
     background: linear-gradient(90deg, rgba(29,161,242,0.1), rgba(10,120,200,0.06));
   }
 
-  /* Desktop only: side-by-side buttons */
   @media (min-width: 768px) {
     #contact .social-list {
       flex-direction: row;
@@ -124,7 +118,6 @@ const Contact: React.FC = () => {
     }
   }
 
-  /* MOBILE: permanent glow */
   @media (max-width: 640px) {
 
     #contact .social-btn {
@@ -162,14 +155,12 @@ const Contact: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
 
-          {/* LEFT — aligned email */}
           <div className="reveal info-item">
             <h2 className="text-4xl md:text-5xl font-serif italic mb-2">Contact</h2>
             <p className="text-accent font-mono uppercase tracking-widest text-xs mb-6">
               Get in touch for enquiries
             </p>
 
-            {/* PC extra spacing */}
             <div className="hidden md:block mb-4">
               <br /><br />
             </div>
@@ -179,7 +170,6 @@ const Contact: React.FC = () => {
             </p>
           </div>
 
-          {/* RIGHT — socials (offset added here) */}
           <div className="reveal social-list social-offset md:self-end md:items-end flex flex-col items-start md:items-end gap-4">
 
             <a href="mailto:ShelfStudios@gmail.com" 

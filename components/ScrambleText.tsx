@@ -2,14 +2,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 interface ScrambleTextProps {
-  text: string | string[]; // single or multiple messages
+  text: string | string[];
   className?: string;
   hover?: boolean;
-  intervalMs?: number; // milliseconds between scramble frames (smaller = faster)
-  step?: number; // how much to advance per tick (larger = faster reveal)
+  intervalMs?: number;
+  step?: number;
 }
 
 const chars = "!@#$%^&*()_+-=[]{}|;':,./<>?ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const mobileChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%";
 
 const ScrambleText: React.FC<ScrambleTextProps> = ({ text, className = "", hover = false, intervalMs = 50, step = 0.5 }) => {
   const messages = Array.isArray(text) ? text : [text];
@@ -17,6 +18,55 @@ const ScrambleText: React.FC<ScrambleTextProps> = ({ text, className = "", hover
   const [display, setDisplay] = useState<string>(targetRef.current);
   const intervalRef = useRef<number | null>(null);
   const [isHovered, setIsHovered] = useState(false);
+  const [isMobile, setIsMobile] = useState<boolean>(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+  const displayRef = useRef<HTMLSpanElement>(null);
+  const [scale, setScale] = useState(1);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mm = window.matchMedia('(max-width: 767px)');
+    const onChange = () => setIsMobile(mm.matches);
+    onChange();
+    mm.addEventListener?.('change', onChange);
+    return () => mm.removeEventListener?.('change', onChange);
+  }, []);
+
+  useEffect(() => {
+    if (!isMobile || !displayRef.current) return;
+
+    const updateScale = () => {
+      const element = displayRef.current;
+      if (!element) return;
+
+      const viewportWidth = window.innerWidth;
+      const maxWidth = viewportWidth * 0.9;
+      const elementWidth = element.scrollWidth;
+
+      if (elementWidth > maxWidth) {
+        const calculatedScale = maxWidth / elementWidth;
+        setScale(Math.max(0.6, Math.min(1, calculatedScale)));
+      } else {
+        setScale(1);
+      }
+    };
+
+    updateScale();
+
+    const resizeObserver = new ResizeObserver(() => {
+      requestAnimationFrame(updateScale);
+    });
+
+    if (displayRef.current) {
+      resizeObserver.observe(displayRef.current);
+    }
+
+    window.addEventListener('resize', updateScale);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', updateScale);
+    };
+  }, [isMobile, display]);
 
   const scramble = (to?: string) => {
     const target = to ?? targetRef.current;
@@ -24,12 +74,13 @@ const ScrambleText: React.FC<ScrambleTextProps> = ({ text, className = "", hover
 
     if (intervalRef.current) window.clearInterval(intervalRef.current as number);
 
-    // Adjust speed based on message length: longer messages reveal faster
     const length = Math.max(1, target.length);
-    const lengthFactor = Math.min(3, Math.max(0.6, length / 20)); // scale based on length, clamped
-    const localStep = step * lengthFactor; // larger step => faster reveal
-    const localIntervalMs = Math.max(8, Math.round(intervalMs / lengthFactor)); // smaller interval => faster updates
+    const lengthFactor = Math.min(3, Math.max(0.6, length / 20));
+    const localStep = step * lengthFactor;
+    const localIntervalMs = Math.max(8, Math.round(intervalMs / lengthFactor));
 
+    const charSet = isMobile ? mobileChars : chars;
+    
     intervalRef.current = window.setInterval(() => {
       setDisplay(
         target
@@ -38,7 +89,7 @@ const ScrambleText: React.FC<ScrambleTextProps> = ({ text, className = "", hover
             if (index < iteration) {
               return target[index];
             }
-            return chars[Math.floor(Math.random() * chars.length)];
+            return charSet[Math.floor(Math.random() * charSet.length)];
           })
           .join("")
       );
@@ -53,7 +104,6 @@ const ScrambleText: React.FC<ScrambleTextProps> = ({ text, className = "", hover
   };
 
   useEffect(() => {
-    // On mount: pick a random message and animate to it once
     const pickInitial = () => {
       if (messages.length === 1) return messages[0];
       const idx = Math.floor(Math.random() * messages.length);
@@ -63,10 +113,8 @@ const ScrambleText: React.FC<ScrambleTextProps> = ({ text, className = "", hover
     const initial = pickInitial();
     targetRef.current = initial;
     setDisplay(initial);
-    // always animate once on load so a random message reveals on page load
     scramble(initial);
 
-    // cleanup interval on unmount
     return () => {
       if (intervalRef.current) {
         window.clearInterval(intervalRef.current as number);
@@ -76,7 +124,6 @@ const ScrambleText: React.FC<ScrambleTextProps> = ({ text, className = "", hover
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Mobile-only: auto-refresh scramble every 5s
   const autoRef = useRef<number | null>(null);
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -86,7 +133,7 @@ const ScrambleText: React.FC<ScrambleTextProps> = ({ text, className = "", hover
     const startAuto = () => {
       if (autoRef.current) return;
       autoRef.current = window.setInterval(() => {
-        if (isHovered) return; // avoid interrupting hover-driven scrambles
+        if (isHovered) return;
         if (messages.length <= 1) return;
 
         let next = targetRef.current;
@@ -108,7 +155,6 @@ const ScrambleText: React.FC<ScrambleTextProps> = ({ text, className = "", hover
       }
     };
 
-    // start only if currently on mobile
     if (mm.matches) startAuto();
 
     const onChange = () => {
@@ -118,9 +164,8 @@ const ScrambleText: React.FC<ScrambleTextProps> = ({ text, className = "", hover
     try {
       mm.addEventListener?.('change', onChange);
     } catch (err) {
-      // some environments may not support addEventListener on MediaQueryList
       try {
-        // @ts-ignore - legacy API
+        // @ts-ignore
         mm.addListener?.(onChange);
       } catch (e) {
         console.warn('matchMedia change listener could not be attached', e);
@@ -140,7 +185,6 @@ const ScrambleText: React.FC<ScrambleTextProps> = ({ text, className = "", hover
   const handleMouseEnter = () => {
     if (hover) {
         setIsHovered(true);
-        // pick a random message different from current
         if (messages.length === 1) {
           targetRef.current = messages[0];
           scramble();
@@ -159,9 +203,17 @@ const ScrambleText: React.FC<ScrambleTextProps> = ({ text, className = "", hover
 
   return (
     <span 
-        className={`${className} inline-block font-mono`}
+        ref={displayRef}
+        className={`${className} ${isMobile ? 'inline-block mobile-scramble-text' : 'inline-block'} font-mono`}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={() => setIsHovered(false)}
+        style={isMobile ? {
+          display: 'inline-block',
+          textAlign: 'center',
+          transform: scale < 1 ? `scale(${scale})` : 'none',
+          transformOrigin: 'center center',
+          transition: 'transform 0.3s ease-out'
+        } : {}}
     >
       {display}
     </span>

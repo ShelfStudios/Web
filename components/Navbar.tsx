@@ -28,7 +28,6 @@ const Navbar: React.FC = () => {
     >
       <div />
 
-      {/* Desktop Menu */}
       <div className="hidden md:flex space-x-12">
         {navLinks.map((link) => (
           <a
@@ -42,7 +41,6 @@ const Navbar: React.FC = () => {
         ))}
       </div>
 
-      {/* Mobile Menu Toggle */}
       <button 
         className="md:hidden z-50 flex flex-col space-y-1.5 p-2 group"
         onClick={() => setMenuOpen(!menuOpen)}
@@ -53,7 +51,6 @@ const Navbar: React.FC = () => {
         <div className={`w-8 h-0.5 bg-white group-hover:bg-accent transition-all duration-300 ${menuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
       </button>
 
-      {/* Mobile Menu Overlay */}
       <div 
         className={`fixed inset-0 bg-studio-black flex flex-col justify-center items-center space-y-8 transition-transform duration-500 ease-in-out md:hidden ${
           menuOpen ? 'translate-x-0' : 'translate-x-full'

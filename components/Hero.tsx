@@ -19,15 +19,9 @@ const Hero: React.FC = () => {
   const [allowLogoInline, setAllowLogoInline] = useState(false);
   const [logoVisible, setLogoVisible] = useState(false);
 
-  // ===============================
-  // PARTICLE BACKGROUND CANVAS
-  // ===============================
   useEffect(() => {
-    // Show the logo slightly before enabling JS inline transforms to avoid
-    // visible repositioning. We fade the wrapper in smoothly, then enable
-    // the inline transform used for parallax/tilt.
-    const showDelay = 200; // ms before starting the fade-in
-    const enableInlineDelay = 380; // ms before enabling inline transforms
+    const showDelay = 200;
+    const enableInlineDelay = 380;
 
     const showTimer = window.setTimeout(() => setLogoVisible(true), showDelay) as unknown as number;
     const inlineTimer = window.setTimeout(() => setAllowLogoInline(true), enableInlineDelay) as unknown as number;
@@ -38,7 +32,6 @@ const Hero: React.FC = () => {
     };
   }, []);
 
-    // Canvas particle background effect
     useEffect(() => {
       const canvas = canvasRef.current;
     if (!canvas) return;
@@ -151,9 +144,6 @@ const Hero: React.FC = () => {
     };
   }, []);
 
-  // ===============================
-  // PARALLAX + SCROLL DIMMING
-  // ===============================
   useEffect(() => {
     const handleScroll = () => {
       targetOffsetRef.current = window.scrollY;
@@ -275,30 +265,24 @@ const Hero: React.FC = () => {
       rafIdRef.current = requestAnimationFrame(loop);
     };
 
-    // Start RAF loop immediately (no artificial delay)
     rafIdRef.current = requestAnimationFrame(loop);
 
-    // Wait for the CSS entry animation of the text block to finish
-    // before applying inline transform so the keyframe animation isn't blocked.
     const textEl = textRef.current;
     let animationListener: ((e: AnimationEvent) => void) | null = null;
     let fallbackTimer: number | null = null;
     if (textEl) {
       animationListener = (e: AnimationEvent) => {
-        // only react to the fadeInUp animation (name may vary), but accept any animationend
         setAllowTextInline(true);
         if (animationListener && textEl) textEl.removeEventListener('animationend', animationListener as any);
         if (fallbackTimer) { window.clearTimeout(fallbackTimer); fallbackTimer = null; }
       };
       textEl.addEventListener('animationend', animationListener as any);
 
-      // safety fallback: ensure we enable inline transforms after 1200ms
       fallbackTimer = window.setTimeout(() => {
         setAllowTextInline(true);
         if (animationListener && textEl) textEl.removeEventListener('animationend', animationListener as any);
       }, 1200) as unknown as number;
     } else {
-      // if text element not found, enable immediately
       setAllowTextInline(true);
     }
 
@@ -322,9 +306,6 @@ const Hero: React.FC = () => {
   const smoothTransition =
     'transform 320ms cubic-bezier(0.33,1,0.68,1), opacity 220ms linear, filter 220ms linear';
 
-  // ===============================
-  // SCROLL INDICATOR TIMER
-  // ===============================
   useEffect(() => {
     indicatorTimerRef.current = window.setTimeout(() => setShowIndicator(true), 7000) as unknown as number;
 
@@ -368,7 +349,6 @@ const Hero: React.FC = () => {
           }}
         >
 
-          {/* =============== LOGO =============== */}
           <div ref={logoWrapperRef} className="mb-12 w-[300px] md:w-[700px] lg:w-[800px]"
             style={{
               animationFillMode: 'forwards',
@@ -393,7 +373,6 @@ const Hero: React.FC = () => {
             </div>
           </div>
 
-          {/* =============== TEXT =============== */}
           <div
             className="max-w-xl text-gray-400 text-lg md:text-xl leading-relaxed animate-fade-in-up mb-12 flex flex-col items-center"
               ref={textRef}
@@ -433,7 +412,6 @@ const Hero: React.FC = () => {
             </div>
           </div>
 
-          {/* =============== BUTTON =============== */}
           <div
             className="animate-fade-in-up pointer-events-auto"
             style={{
@@ -457,7 +435,6 @@ const Hero: React.FC = () => {
           </div>
         </div>
 
-        {/* Scroll indicator */}
         <div
           className={`absolute bottom-10 left-1/2 -translate-x-1/2 text-gray-500 z-10 transition-opacity duration-500 flex flex-col items-center ${
             showIndicator ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
