@@ -86,24 +86,46 @@ const TiltCard: React.FC<{ project: Project; idx: number; isActive?: boolean; re
     mover.style.transform = 'translateX(60vw)';
     mover.style.opacity = '0';
 
+    let rafId: number | null = null;
+    let lastRatio = -1;
+
     const observer = new IntersectionObserver(
       (entries) => {
-        entries.forEach((entry) => {
-          const ratio = entry.intersectionRatio;
+        // Get the most recent entry
+        const entry = entries[entries.length - 1];
+        const ratio = entry.intersectionRatio;
+        
+        // Throttle updates using requestAnimationFrame
+        if (rafId !== null) {
+          cancelAnimationFrame(rafId);
+        }
+        
+        rafId = requestAnimationFrame(() => {
+          // Only update if ratio changed significantly to reduce updates
+          if (lastRatio >= 0 && Math.abs(ratio - lastRatio) < 0.02) return;
+          lastRatio = ratio;
+          
           const eased = easeOutCubic(ratio);
           const translateVw = (1 - eased) * 60;
           const opacity = Math.max(0.12, eased);
-          mover.style.transform = `translateX(${translateVw}vw)`;
+          mover.style.transform = `translate3d(${translateVw}vw, 0, 0)`;
           mover.style.opacity = String(opacity);
         });
       },
       {
-        threshold: Array.from({ length: 20 }, (_, i) => i / 19)
+        // Reduced thresholds for better mobile performance
+        threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+        rootMargin: '0px 0px -10% 0px'
       }
     );
 
     observer.observe(outer);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+    };
   }, [isMobile]);
 
   const cardContent = (
@@ -122,15 +144,27 @@ const TiltCard: React.FC<{ project: Project; idx: number; isActive?: boolean; re
       style={{
         perspective: "1000px",
         aspectRatio: isMobile ? '4/3' : undefined,
-        willChange: 'transform, opacity'
+        willChange: isMobile ? 'auto' : 'transform, opacity'
       }}
     >
-      <div ref={moverRef} className="w-full h-full">
+      <div 
+        ref={moverRef} 
+        className="w-full h-full"
+        style={isMobile ? { 
+          backfaceVisibility: 'hidden',
+          WebkitBackfaceVisibility: 'hidden',
+          transform: 'translateZ(0)'
+        } : {}}
+      >
         <div
           className="w-full h-full transition-transform duration-100 ease-out relative preserve-3d"
           style={{
               transform: `${!isMobile ? `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg) ` : ''}scale3d(${isHovering ? 1.04 : 1}, ${isHovering ? 1.04 : 1}, 1)`,
-              transformStyle: 'preserve-3d'
+              transformStyle: 'preserve-3d',
+              ...(isMobile ? {
+                backfaceVisibility: 'hidden',
+                WebkitBackfaceVisibility: 'hidden'
+              } : {})
             }}
         >
           <div className="w-full h-full overflow-hidden relative border border-white/10 rounded-sm shadow-2xl bg-studio-zinc">
@@ -328,7 +362,14 @@ const Work: React.FC = () => {
 
   if (isMobile) {
     return (
-      <section id="work" className="relative bg-studio-black py-12 px-6">
+      <section 
+        id="work" 
+        className="relative bg-studio-black py-12 px-6"
+        style={{
+          WebkitOverflowScrolling: 'touch',
+          transform: 'translateZ(0)'
+        }}
+      >
         <div className="max-w-4xl mx-auto">
           <div className="mb-12">
             <h3 className="text-4xl font-serif italic text-white mb-4">Selected Projects</h3>
@@ -339,7 +380,15 @@ const Work: React.FC = () => {
 
           <div className="flex flex-col items-center gap-8">
             {projects.map((project, idx) => (
-              <div key={project.id} className="w-full flex justify-center">
+              <div 
+                key={project.id} 
+                className="w-full flex justify-center"
+                style={{
+                  transform: 'translateZ(0)',
+                  backfaceVisibility: 'hidden',
+                  WebkitBackfaceVisibility: 'hidden'
+                }}
+              >
                 <TiltCard
                   project={project}
                   idx={idx}
