@@ -84,25 +84,27 @@ const TiltCard: React.FC<{ project: Project; idx: number; isActive?: boolean; re
     const outer = cardRef.current;
     if (!outer) return;
 
-    // Simple one-time trigger when card enters viewport
+    // Smooth fade-in animation trigger
     let hasTriggered = false;
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting && !hasTriggered) {
             hasTriggered = true;
-            // Use requestAnimationFrame to ensure smooth animation start
-            requestAnimationFrame(() => {
-              setIsVisible(true);
-            });
-            // Disconnect after first trigger to prevent re-triggering
+            // Small delay for stagger effect if multiple cards
+            setTimeout(() => {
+              requestAnimationFrame(() => {
+                setIsVisible(true);
+              });
+            }, idx * 100);
+            // Disconnect after first trigger
             observer.disconnect();
           }
         });
       },
       {
-        threshold: 0.1, // Trigger when 10% visible
-        rootMargin: '0px 0px -5% 0px' // Small bottom margin to trigger slightly before fully visible
+        threshold: 0.15,
+        rootMargin: '0px 0px -10% 0px'
       }
     );
 
@@ -110,7 +112,7 @@ const TiltCard: React.FC<{ project: Project; idx: number; isActive?: boolean; re
     return () => {
       observer.disconnect();
     };
-  }, [isMobile]);
+  }, [isMobile, idx]);
 
   const cardContent = (
     <div
@@ -139,7 +141,7 @@ const TiltCard: React.FC<{ project: Project; idx: number; isActive?: boolean; re
         ref={moverRef} 
         className={`w-full h-full ${isMobile && isVisible ? 'mobile-card-visible' : isMobile ? 'mobile-card-hidden' : ''}`}
         style={isMobile ? { 
-          willChange: isVisible ? 'auto' : 'transform, opacity'
+          willChange: isVisible ? 'auto' : 'transform, opacity, filter'
         } : {}}
       >
         <div

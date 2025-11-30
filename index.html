@@ -140,19 +140,23 @@
           -moz-osx-font-smoothing: grayscale;
         }
         
-        /* Mobile card animation - smooth and non-blocking */
+        /* Mobile card animation - smooth fade-in with scale and subtle lift */
         .mobile-card-hidden {
-          transform: translate3d(40px, 0, 0);
           opacity: 0;
-          transition: transform 800ms cubic-bezier(0.16, 1, 0.3, 1), 
-                      opacity 800ms cubic-bezier(0.16, 1, 0.3, 1);
+          transform: translate3d(0, 24px, 0) scale(0.96);
+          filter: blur(4px);
+          transition: opacity 1000ms cubic-bezier(0.19, 1, 0.22, 1),
+                      transform 1000ms cubic-bezier(0.19, 1, 0.22, 1),
+                      filter 1000ms cubic-bezier(0.19, 1, 0.22, 1);
         }
         
         .mobile-card-visible {
-          transform: translate3d(0, 0, 0);
           opacity: 1;
-          transition: transform 800ms cubic-bezier(0.16, 1, 0.3, 1), 
-                      opacity 800ms cubic-bezier(0.16, 1, 0.3, 1);
+          transform: translate3d(0, 0, 0) scale(1);
+          filter: blur(0px);
+          transition: opacity 1000ms cubic-bezier(0.19, 1, 0.22, 1),
+                      transform 1000ms cubic-bezier(0.19, 1, 0.22, 1),
+                      filter 1000ms cubic-bezier(0.19, 1, 0.22, 1);
         }
       }
 
