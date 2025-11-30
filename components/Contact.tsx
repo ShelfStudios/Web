@@ -166,13 +166,13 @@ const Contact: React.FC = () => {
             </div>
 
             <p className="text-2xl border-b border-white/20 pb-1 inline-block hover:text-accent hover:border-accent transition-all cursor-pointer">
-              ShelfStudios@gmail.com
+              Cadan@ShelfStudios.uk
             </p>
           </div>
 
           <div className="reveal social-list social-offset md:self-end md:items-end flex flex-col items-start md:items-end gap-4">
 
-            <a href="mailto:ShelfStudios@gmail.com" 
+            <a href="mailto:Cadan@ShelfStudios.uk" 
                className="social-btn email"
                aria-label="Email ShelfStudios">
               Email

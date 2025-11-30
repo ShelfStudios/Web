@@ -398,7 +398,7 @@ const Hero: React.FC = () => {
               <ScrambleText
                 text={[
                   "Call me Cadan :)",
-                  "Questions? — shelfstudios@gmail.com",
+                  "Questions? — Cadan@ShelfStudios.uk",
                   "Wow isnt this cool",
                   "I don't make shelves",
                   "062",
