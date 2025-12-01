@@ -1,5 +1,5 @@
 import React from 'react';
-import Footer from './components/Footer';
+import Footer from '../components/Footer';
 
 const Layout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   return (
