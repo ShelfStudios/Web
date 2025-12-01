@@ -21,7 +21,6 @@ const projects: Project[] = [
 const TiltCard: React.FC<{ project: Project; idx: number; isActive?: boolean; registerEl?: (el: HTMLDivElement | null) => void }> = ({ project, idx, isActive = false, registerEl }) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const moverRef = useRef<HTMLDivElement>(null);
-  const [rotation, setRotation] = useState({ x: 0, y: 0 });
   const [glowPos, setGlowPos] = useState({ x: 50, y: 50 });
   const [isHovering, setIsHovering] = useState(false);
   const [isMobile, setIsMobile] = useState<boolean>(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
@@ -38,20 +37,13 @@ const TiltCard: React.FC<{ project: Project; idx: number; isActive?: boolean; re
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-
-    const rotateX = ((y - centerY) / centerY) * -22;
-    const rotateY = ((x - centerX) / centerX) * 22;
-
-    setRotation({ x: rotateX, y: rotateY });
+    // Track mouse position for glow effect
     setGlowPos({ x: (x / rect.width) * 100, y: (y / rect.height) * 100 });
     setIsHovering(true);
   };
 
   const handleMouseLeave = () => {
     setIsHovering(false);
-    setRotation({ x: 0, y: 0 });
   };
 
   const handleMouseEnter = () => {
@@ -66,9 +58,6 @@ const TiltCard: React.FC<{ project: Project; idx: number; isActive?: boolean; re
     return () => mm.removeEventListener?.('change', onChange);
   }, []);
 
-  useEffect(() => {
-    if (isMobile) setRotation({ x: 0, y: 0 });
-  }, [isMobile]);
 
   useEffect(() => {
     if (!isMobile) {
@@ -168,7 +157,7 @@ const TiltCard: React.FC<{ project: Project; idx: number; isActive?: boolean; re
             rotateX(${(1 - scrollProgress) * 8}deg)
           `,
           filter: `
-            blur(${(1 - scrollProgress) * 10}px) 
+            blur(${(1 - Math.sqrt(scrollProgress)) * 6}px) 
             brightness(${0.6 + scrollProgress * 0.4})
             contrast(${0.9 + scrollProgress * 0.1})
           `,
@@ -180,26 +169,58 @@ const TiltCard: React.FC<{ project: Project; idx: number; isActive?: boolean; re
         } : {}}
       >
         <div
-          className="w-full h-full transition-transform duration-100 ease-out relative preserve-3d"
+          className="w-full h-full transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] relative preserve-3d"
           style={{
-              transform: `${!isMobile ? `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg) ` : ''}scale3d(${isHovering ? 1.04 : 1}, ${isHovering ? 1.04 : 1}, 1)`,
-              transformStyle: 'preserve-3d'
+              transform: `scale3d(${isHovering ? 1.08 : 1}, ${isHovering ? 1.08 : 1}, 1) translateZ(${isHovering ? 30 : 0}px)`,
+              transformStyle: 'preserve-3d',
+              filter: isHovering ? 'brightness(1.15) contrast(1.05)' : 'brightness(1) contrast(1)'
             }}
         >
-          <div className="w-full h-full overflow-hidden relative border border-white/10 rounded-sm shadow-2xl bg-studio-zinc">
+          <div className="w-full h-full overflow-hidden relative rounded-sm shadow-2xl bg-studio-zinc">
+            {/* Animated border glow on hover */}
             <div
-              className="absolute inset-0 z-20 pointer-events-none mix-blend-overlay transition-opacity duration-500"
+              className="absolute inset-0 z-30 pointer-events-none rounded-sm transition-opacity duration-500"
               style={{
-                background: `radial-gradient(circle at ${glowPos.x}% ${glowPos.y}%, rgba(0,240,255,0.4), transparent 50%)`,
-                opacity: (isHovering || isActive) ? 1 : 0
+                opacity: isHovering ? 1 : 0,
+                boxShadow: isHovering 
+                  ? `0 0 40px rgba(0,240,255,0.6), 0 0 80px rgba(0,240,255,0.3), inset 0 0 40px rgba(0,240,255,0.1)`
+                  : 'none',
+                border: isHovering ? '2px solid rgba(0,240,255,0.5)' : '2px solid transparent',
+                transition: 'opacity 0.5s ease, box-shadow 0.5s ease, border 0.5s ease'
+              }}
+            />
+            {/* Enhanced glow effect */}
+            <div
+              className="absolute inset-0 z-20 pointer-events-none mix-blend-screen transition-opacity duration-500"
+              style={{
+                background: `radial-gradient(circle at ${glowPos.x}% ${glowPos.y}%, rgba(0,240,255,0.6) 0%, rgba(0,240,255,0.2) 30%, transparent 70%)`,
+                opacity: (isHovering || isActive) ? 1 : 0,
+                filter: 'blur(20px)'
+              }}
+            />
+            {/* Secondary glow layer for depth */}
+            <div
+              className="absolute inset-0 z-19 pointer-events-none transition-opacity duration-700"
+              style={{
+                background: `radial-gradient(circle at ${glowPos.x}% ${glowPos.y}%, rgba(0,240,255,0.3), transparent 60%)`,
+                opacity: (isHovering || isActive) ? 1 : 0,
+                filter: 'blur(40px)'
               }}
             />
             <img
               src={project.imageUrl}
               alt={project.title}
-              className={`w-full h-full object-cover transition-all duration-700 scale-110 group-hover:scale-100 ${isActive ? 'md:grayscale-0' : 'md:grayscale md:group-hover:grayscale-0'}`}
+              className={`w-full h-full object-cover transition-all duration-700 scale-110 group-hover:scale-105`}
+              style={{
+                filter: isMobile
+                  ? 'grayscale(0) contrast(1.1) saturate(1.2)'
+                  : (isHovering || isActive)
+                    ? 'grayscale(0) contrast(1.1) saturate(1.2)'
+                    : 'grayscale(1) contrast(1) saturate(1)',
+                transition: 'filter 0.7s ease'
+              }}
             />
-            <div className="absolute inset-x-0 bottom-0 w-full p-4 md:p-8 bg-gradient-to-t from-black/95 via-black/70 to-transparent z-10 translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+            <div className="absolute inset-x-0 bottom-0 w-full p-4 md:p-8 bg-gradient-to-t from-black/98 via-black/80 to-transparent z-10 translate-y-4 group-hover:translate-y-0 transition-all duration-500">
               <div className="relative w-full h-full">
                 <div className="flex flex-col justify-end h-full">
                   <div className="text-left">

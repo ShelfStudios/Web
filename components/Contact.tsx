@@ -118,7 +118,7 @@ const Contact: React.FC = () => {
     }
   }
 
-  @media (max-width: 640px) {
+  @media (max-width: 767px) {
 
     #contact .social-btn {
       width: 100%;
@@ -153,9 +153,9 @@ const Contact: React.FC = () => {
   }
 `}</style>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center text-center md:text-left">
 
-          <div className="reveal info-item">
+          <div className="reveal info-item text-center md:text-left">
             <h2 className="text-4xl md:text-5xl font-serif italic mb-2">Contact</h2>
             <p className="text-accent font-mono uppercase tracking-widest text-xs mb-6">
               Get in touch for enquiries
@@ -165,15 +165,15 @@ const Contact: React.FC = () => {
               <br /><br />
             </div>
 
-            <p className="text-2xl border-b border-white/20 pb-1 inline-block hover:text-accent hover:border-accent transition-all cursor-pointer">
+            <p className="text-2xl border-b border-white/20 pb-1 inline-block hover:text-accent hover:border-accent transition-all cursor-pointer mx-auto md:mx-0">
               Cadan@ShelfStudios.uk
             </p>
           </div>
 
-          <div className="reveal social-list social-offset md:self-end md:items-end flex flex-col items-start md:items-end gap-4">
+          <div className="reveal social-list social-offset md:self-end flex flex-col items-center md:items-end gap-4">
 
             <a href="mailto:Cadan@ShelfStudios.uk" 
-               className="social-btn email"
+              className="social-btn email"
                aria-label="Email ShelfStudios">
               Email
             </a>

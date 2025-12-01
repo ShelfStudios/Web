@@ -402,8 +402,7 @@ const Hero: React.FC = () => {
                   "Wow isnt this cool",
                   "I don't make shelves",
                   "062",
-                  "Cadan is a genius -Einstein Probably",
-                  "Shelf yourself - Stay a while!",
+                  "Cadan's a genius -Einstein Probably",
                   "Shelf: Stronger than your last relationship"
                 ]}
                 className="text-accent"
