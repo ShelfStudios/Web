@@ -435,7 +435,7 @@ const Hero: React.FC = () => {
         </div>
 
         <div
-          className={`absolute bottom-10 left-1/2 -translate-x-1/2 text-gray-500 z-10 transition-opacity duration-500 flex flex-col items-center ${
+          className={`absolute bottom-[50px] md:bottom-10 left-1/2 -translate-x-1/2 text-gray-500 z-10 transition-opacity duration-500 flex flex-col items-center ${
             showIndicator ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
           }`}
         >
