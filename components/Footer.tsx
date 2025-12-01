@@ -1,5 +1,6 @@
 import React from 'react';
 import Logo from './Logo';
+import { Link } from 'react-router-dom';
 
 const Footer: React.FC = () => {
   return (
@@ -10,9 +11,9 @@ const Footer: React.FC = () => {
           {/* NAV first on mobile, right on desktop */}
           <div className="w-full md:col-start-3 md:col-span-1 order-1 md:order-3 flex justify-center md:justify-end">
             <nav className="w-full md:w-auto flex flex-col md:flex-row items-center md:items-center text-sm md:text-sm font-mono uppercase md:tracking-widest md:space-x-8">
-              <a href="/privacy" className="block w-full md:w-auto text-center md:text-left hover:text-accent transition-colors py-2 md:py-0 md:px-2">Privacy</a>
-              <a href="/terms" className="block w-full md:w-auto text-center md:text-left hover:text-accent transition-colors py-2 md:py-0 md:px-2">Terms</a>
-              <a href="/sitemap" className="block w-full md:w-auto text-center md:text-left hover:text-accent transition-colors py-2 md:py-0 md:px-2">Sitemap</a>
+              <Link to="/privacy" className="block w-full md:w-auto text-center md:text-left hover:text-accent transition-colors py-2 md:py-0 md:px-2">Privacy</Link>
+              <Link to="/terms" className="block w-full md:w-auto text-center md:text-left hover:text-accent transition-colors py-2 md:py-0 md:px-2">Terms</Link>
+              <Link to="/sitemap" className="block w-full md:w-auto text-center md:text-left hover:text-accent transition-colors py-2 md:py-0 md:px-2">Sitemap</Link>
             </nav>
           </div>
 

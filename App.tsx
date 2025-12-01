@@ -1,46 +1,22 @@
 
-import React, { useEffect } from 'react';
-import Hero from './components/Hero';
-import About from './components/About';
-import Work from './components/Work';
-import Contact from './components/Contact';
-import Footer from './components/Footer';
-import Marquee from './components/Marquee';
-import MarqueeMid from './components/MarqueeMid';
+import React from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import Layout from './src/Layout';
+import Home from './src/pages/Home';
+import Privacy from './src/pages/Privacy';
+import Terms from './src/pages/Terms';
+import Sitemap from './src/pages/Sitemap';
 
 function App() {
-  useEffect(() => {
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('active');
-        }
-      });
-    }, {
-      threshold: 0.1,
-      rootMargin: "0px 0px -50px 0px"
-    });
-
-    const revealElements = document.querySelectorAll('.reveal');
-    revealElements.forEach((el) => observer.observe(el));
-
-    return () => {
-      revealElements.forEach((el) => observer.unobserve(el));
-    };
-  }, []);
-
   return (
-    <div className="min-h-screen bg-studio-black text-studio-gray font-sans antialiased relative">
-      <main className="relative z-10">
-        <Hero />
-        <Marquee />
-        <About />
-        <Work />
-        <MarqueeMid />
-        <Contact />
-      </main>
-      <Footer />
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Layout><Home /></Layout>} />
+        <Route path="/privacy" element={<Layout><Privacy /></Layout>} />
+        <Route path="/terms" element={<Layout><Terms /></Layout>} />
+        <Route path="/sitemap" element={<Layout><Sitemap /></Layout>} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
