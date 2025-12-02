@@ -1,7 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Project } from '../types';
 
-const projects: Project[] = [
+export const projects: Project[] = [
   {
     id: 1,
     title: "ItsSpeltCadan",
@@ -18,7 +19,7 @@ const projects: Project[] = [
   },
 ];
 
-const TiltCard: React.FC<{ project: Project; idx: number; isActive?: boolean; registerEl?: (el: HTMLDivElement | null) => void }> = ({ project, idx, isActive = false, registerEl }) => {
+export const TiltCard: React.FC<{ project: Project; idx: number; isActive?: boolean; registerEl?: (el: HTMLDivElement | null) => void; compact?: boolean; disableGreyscale?: boolean; hideArrow?: boolean; imageOverride?: string; hideOverlay?: boolean }> = ({ project, idx, isActive = false, registerEl, compact = false, disableGreyscale = false, hideArrow = false, imageOverride, hideOverlay = false }) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const moverRef = useRef<HTMLDivElement>(null);
   const [glowPos, setGlowPos] = useState({ x: 50, y: 50 });
@@ -128,11 +129,13 @@ const TiltCard: React.FC<{ project: Project; idx: number; isActive?: boolean; re
       data-project-id={project.id}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      className={`group relative md:cursor-none flex-shrink-0 w-[85vw] md:w-[60vw] lg:w-[45vw] md:h-[70vh] perspective-1000 mx-4 md:mx-8 ${
-        !isMobile ? 'transition-all duration-900 ease-[cubic-bezier(0.22,1,0.36,1)]' : ''
-      }`}
+      className={
+        compact
+          ? `group relative flex-shrink-0 w-full max-w-sm h-64 perspective-1000 mx-2 ${!isMobile ? 'transition-all duration-500' : ''}`
+          : `group relative md:cursor-none flex-shrink-0 w-[85vw] md:w-[60vw] lg:w-[45vw] md:h-[70vh] perspective-1000 mx-4 md:mx-8 ${!isMobile ? 'transition-all duration-900 ease-[cubic-bezier(0.22,1,0.36,1)]' : ''}`
+      }
       style={{
-        perspective: "1000px",
+        perspective: '1000px',
         aspectRatio: isMobile ? '4/3' : undefined,
         willChange: isMobile ? 'auto' : 'transform, opacity',
         ...(isMobile ? {
@@ -208,38 +211,42 @@ const TiltCard: React.FC<{ project: Project; idx: number; isActive?: boolean; re
               }}
             />
             <img
-              src={project.imageUrl}
+              src={imageOverride ?? project.imageUrl}
               alt={project.title}
               className={`w-full h-full object-cover transition-all duration-700 scale-110 group-hover:scale-105`}
               style={{
-                filter: isMobile
+                filter: disableGreyscale
                   ? 'grayscale(0) contrast(1.1) saturate(1.2)'
-                  : (isHovering || isActive)
+                  : isMobile
                     ? 'grayscale(0) contrast(1.1) saturate(1.2)'
-                    : 'grayscale(1) contrast(1) saturate(1)',
+                    : (isHovering || isActive)
+                      ? 'grayscale(0) contrast(1.1) saturate(1.2)'
+                      : 'grayscale(1) contrast(1) saturate(1)',
                 transition: 'filter 0.7s ease'
               }}
             />
-            <div className="absolute inset-x-0 bottom-0 w-full p-4 md:p-8 bg-gradient-to-t from-black/98 via-black/80 to-transparent z-10 translate-y-4 group-hover:translate-y-0 transition-all duration-500">
+                <div className={compact ? (hideOverlay ? "absolute inset-x-0 bottom-0 w-full p-3 md:p-6 bg-transparent z-10 translate-y-3 group-hover:translate-y-0 transition-all duration-350" : "absolute inset-x-0 bottom-0 w-full p-3 md:p-6 bg-gradient-to-t from-black/90 via-black/70 to-transparent z-10 translate-y-3 group-hover:translate-y-0 transition-all duration-350") : (hideOverlay ? "absolute inset-x-0 bottom-0 w-full p-4 md:p-8 bg-transparent z-10 translate-y-4 group-hover:translate-y-0 transition-all duration-500" : "absolute inset-x-0 bottom-0 w-full p-4 md:p-8 bg-gradient-to-t from-black/98 via-black/80 to-transparent z-10 translate-y-4 group-hover:translate-y-0 transition-all duration-500")}>
               <div className="relative w-full h-full">
                 <div className="flex flex-col justify-end h-full">
                   <div className="text-left">
-                    <span className="text-accent text-xs font-mono uppercase tracking-widest mb-2 block glow-text">
+                    <span className={compact ? "text-accent text-[10px] font-mono uppercase tracking-widest block" : "text-accent text-xs font-mono uppercase tracking-widest mb-2 block glow-text"}>
                       {project.category}
                     </span>
-                    <h3 className="text-2xl md:text-5xl font-bold text-white mb-2 font-serif italic">
+                    <h3 className={compact ? "text-lg md:text-2xl font-bold text-white mb-1 font-serif italic" : "text-2xl md:text-5xl font-bold text-white mb-2 font-serif italic"}>
                       {project.title}
                     </h3>
-                    {!isMobile && (
+                    {!isMobile && !compact && (
                       <p className="text-gray-400 font-light text-sm tracking-wide">{project.description}</p>
                     )}
                   </div>
                 </div>
-                <div className="absolute right-4 md:right-8 bottom-4 md:bottom-6 flex-shrink-0 w-12 h-12 rounded-full border border-white/20 flex items-center justify-center transition-all duration-300 bg-transparent md:group-hover:bg-accent md:group-hover:text-black md:group-hover:border-accent">
-                  <span className="text-xl transform -rotate-45 md:group-hover:rotate-0 transition-transform duration-300">
-                    →
-                  </span>
-                </div>
+                {!hideArrow && (
+                  <div className="absolute right-4 md:right-8 bottom-4 md:bottom-6 flex-shrink-0 w-12 h-12 rounded-full border border-white/20 flex items-center justify-center transition-all duration-300 bg-transparent md:group-hover:bg-accent md:group-hover:text-black md:group-hover:border-accent">
+                    <span className="text-xl transform -rotate-45 md:group-hover:rotate-0 transition-transform duration-300">
+                      →
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -429,7 +436,7 @@ const Work: React.FC = () => {
           </div>
 
           <div className="mt-12 text-center">
-            <a href="#projects" className="inline-block bg-accent text-black px-6 py-3 rounded-full font-mono text-sm uppercase tracking-widest">View all projects</a>
+            <Link to="/projects" className="inline-block bg-accent text-black px-6 py-3 rounded-full font-mono text-sm uppercase tracking-widest">View all projects</Link>
           </div>
         </div>
       </section>
@@ -497,9 +504,9 @@ const Work: React.FC = () => {
               <div className="block text-5xl md:text-8xl font-serif italic text-white group-hover:text-accent transition-colors duration-300">
                 View all <br /> Projects
               </div>
-              <a href="#projects" className="mt-6 md:mt-8 mx-auto block w-24 h-24 rounded-full border border-white/20 group-hover:bg-accent group-hover:border-accent flex items-center justify-center transition-all duration-500 group-hover:scale-110">
+              <Link to="/projects" className="mt-6 md:mt-8 mx-auto block w-24 h-24 rounded-full border border-white/20 group-hover:bg-accent group-hover:border-accent flex items-center justify-center transition-all duration-500 group-hover:scale-110">
                 <span className="text-3xl text-white group-hover:text-black">→</span>
-              </a>
+              </Link>
             </div>
           </div>
 

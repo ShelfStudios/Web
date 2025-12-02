@@ -19,7 +19,6 @@ const Contact: React.FC = () => {
   };
 
   const rootRef = useRef<HTMLElement | null>(null);
-
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
@@ -39,8 +38,9 @@ const Contact: React.FC = () => {
   }, []);
 
   return (
-    <section id="contact" className="py-24 px-6 bg-black text-gray-12 border-t border-white/5" ref={rootRef}>
-      <div className="max-w-5xl mx-auto">
+    <section id="contact" className="py-24 px-6 bg-transparent text-gray-12 border-t border-white/5 relative" ref={rootRef}>
+      <div className="max-w-5xl mx-auto relative">
+
 
         <style>{`
   #contact .reveal { opacity: 0; transform: translateY(14px); transition: opacity .6s ease, transform .7s cubic-bezier(.16,1,.3,1); }

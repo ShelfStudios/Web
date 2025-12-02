@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import Logo from './Logo';
 import ScrambleText from './ScrambleText';
 
@@ -34,115 +35,137 @@ const Hero: React.FC = () => {
 
     useEffect(() => {
       const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
 
-    let width = window.innerWidth;
-    let height = window.innerHeight;
-    canvas.width = width;
-    canvas.height = height;
+      let width = window.innerWidth;
+      let height = window.innerHeight;
+      let docHeight = document.documentElement.scrollHeight;
 
-    const particles: { x: number; y: number; vx: number; vy: number; baseX: number; baseY: number }[] = [];
-    const particleCount = width < 768 ? 50 : 100;
-    const connectionDistance = 150;
-    const mouseRadius = 200;
-
-    for (let i = 0; i < particleCount; i++) {
-      const x = Math.random() * width;
-      const y = Math.random() * height;
-      particles.push({
-        x,
-        y,
-        baseX: x,
-        baseY: y,
-        vx: (Math.random() - 0.5) * 0.5,
-        vy: (Math.random() - 0.5) * 0.5,
-      });
-    }
-
-    let mouseX = -1000;
-    let mouseY = -1000;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      mouseX = e.clientX - rect.left;
-      mouseY = e.clientY - rect.top;
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-
-    const animate = () => {
-      ctx.clearRect(0, 0, width, height);
-
-      particles.forEach(p => {
-        p.x += p.vx;
-        p.y += p.vy;
-
-        if (p.x < 0 || p.x > width) p.vx *= -1;
-        if (p.y < 0 || p.y > height) p.vy *= -1;
-
-        const dx = mouseX - p.x;
-        const dy = mouseY - p.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-
-        if (distance < mouseRadius) {
-          const forceDirectionX = dx / distance;
-          const forceDirectionY = dy / distance;
-          const force = (mouseRadius - distance) / mouseRadius;
-          const directionX = forceDirectionX * force * 5;
-          const directionY = forceDirectionY * force * 5;
-
-          p.x -= directionX;
-          p.y -= directionY;
-        } else {
-          if (p.x !== p.baseX) p.x -= (p.x - p.baseX) * 0.01;
-          if (p.y !== p.baseY) p.y -= (p.y - p.baseY) * 0.01;
-        }
-
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
-        ctx.fillStyle = '#bd1b9ac5';
-        ctx.fill();
-      });
-
-      ctx.strokeStyle = 'rgba(255, 0, 212, 0.15)';
-      ctx.lineWidth = 1;
-
-      for (let i = 0; i < particles.length; i++) {
-        for (let j = i; j < particles.length; j++) {
-          const dx = particles[i].x - particles[j].x;
-          const dy = particles[i].y - particles[j].y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-
-          if (distance < connectionDistance) {
-            ctx.beginPath();
-            ctx.moveTo(particles[i].x, particles[i].y);
-            ctx.lineTo(particles[j].x, particles[j].y);
-            ctx.stroke();
-          }
-        }
-      }
-
-      requestAnimationFrame(animate);
-    };
-
-    animate();
-
-    const handleResize = () => {
-      width = window.innerWidth;
-      height = window.innerHeight;
+      // keep canvas sized to the viewport (fixed) so it doesn't affect document layout
       canvas.width = width;
       canvas.height = height;
-    };
 
-    window.addEventListener('resize', handleResize);
+      const particles: { x: number; y: number; vx: number; vy: number; baseX: number; baseY: number }[] = [];
+      const perScreenCount = width < 768 ? 50 : 100;
+      const particleCount = Math.max(6, Math.ceil(perScreenCount * (docHeight / Math.max(1, height))));
+      const connectionDistance = 150;
+      const mouseRadius = 200;
 
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
+      for (let i = 0; i < particleCount; i++) {
+        const x = Math.random() * width;
+        const y = Math.random() * docHeight;
+        particles.push({
+          x,
+          y,
+          baseX: x,
+          baseY: y,
+          vx: (Math.random() - 0.5) * 0.5,
+          vy: (Math.random() - 0.5) * 0.5,
+        });
+      }
+
+      let mouseX = -1000;
+      let mouseY = -1000;
+
+      const handleMouseMove = (e: MouseEvent) => {
+        // mouse coords in document space
+        mouseX = e.clientX;
+        mouseY = e.clientY + window.scrollY;
+      };
+
+      window.addEventListener('mousemove', handleMouseMove);
+
+      const animate = () => {
+        ctx.clearRect(0, 0, width, height);
+
+        const viewportTop = window.scrollY || 0;
+        const viewportBottom = viewportTop + height;
+
+        particles.forEach(p => {
+          p.x += p.vx;
+          p.y += p.vy;
+
+          if (p.x < 0 || p.x > width) p.vx *= -1;
+          if (p.y < 0 || p.y > docHeight) p.vy *= -1;
+
+          const dx = mouseX - p.x;
+          const dy = mouseY - p.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < mouseRadius) {
+            const forceDirectionX = dx / (distance || 1);
+            const forceDirectionY = dy / (distance || 1);
+            const force = (mouseRadius - distance) / mouseRadius;
+            const directionX = forceDirectionX * force * 5;
+            const directionY = forceDirectionY * force * 5;
+
+            p.x -= directionX;
+            p.y -= directionY;
+          } else {
+            if (p.x !== p.baseX) p.x -= (p.x - p.baseX) * 0.01;
+            if (p.y !== p.baseY) p.y -= (p.y - p.baseY) * 0.01;
+          }
+
+          // only draw if within visible viewport
+          if (p.y > viewportTop - 10 && p.y < viewportBottom + 10) {
+            const canvasLocalY = p.y - viewportTop;
+            ctx.beginPath();
+            ctx.arc(p.x, canvasLocalY, 2, 0, Math.PI * 2);
+            ctx.fillStyle = '#bd1b9ac5';
+            ctx.fill();
+          }
+        });
+
+        ctx.strokeStyle = 'rgba(255, 0, 212, 0.15)';
+        ctx.lineWidth = 1;
+
+        for (let i = 0; i < particles.length; i++) {
+          for (let j = i; j < particles.length; j++) {
+            const sx = particles[i].x;
+            const sy = particles[i].y;
+            const tx = particles[j].x;
+            const ty = particles[j].y;
+
+            if (sy < viewportTop - connectionDistance || sy > viewportBottom + connectionDistance) continue;
+            if (ty < viewportTop - connectionDistance || ty > viewportBottom + connectionDistance) continue;
+
+            const dx = sx - tx;
+            const dy = sy - ty;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < connectionDistance) {
+              ctx.beginPath();
+              ctx.moveTo(sx, sy - viewportTop);
+              ctx.lineTo(tx, ty - viewportTop);
+              ctx.stroke();
+            }
+          }
+        }
+
+        requestAnimationFrame(animate);
+      };
+
+      animate();
+
+      const handleResize = () => {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        docHeight = document.documentElement.scrollHeight;
+        // keep canvas viewport-sized
+        canvas.width = width;
+        canvas.height = height;
+      };
+
+      window.addEventListener('resize', handleResize);
+      setTimeout(handleResize, 600);
+
+      return () => {
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('resize', handleResize);
+      };
+    }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -328,7 +351,7 @@ const Hero: React.FC = () => {
   }, []);
 
   return (
-    <section ref={sectionRef} className="relative h-screen w-full overflow-hidden px-6 bg-studio-black">
+    <section ref={sectionRef} className="relative h-screen w-full overflow-visible px-6 bg-black">
 
       <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none">
 
@@ -422,15 +445,15 @@ const Hero: React.FC = () => {
               filter: 'brightness(calc(1 - var(--hero-dim)*0.8))'
             }}
           >
-            <a
-              href="#work"
-              className="group relative inline-block border border-white/20 px-10 py-4 text-sm tracking-widest uppercase text-white overflow-hidden transition-all duration-300 hover:border-accent hover:shadow-glow"
-            >
-              <span className="relative z-10 font-bold group-hover:text-black transition-colors duration-300">
-                View Projects
-              </span>
-              <div className="absolute inset-0 bg-accent transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
-            </a>
+              <Link
+                to="/projects"
+                className="group relative inline-block border border-white/20 px-10 py-4 text-sm tracking-widest uppercase text-white overflow-hidden transition-all duration-300 hover:border-accent hover:shadow-glow"
+              >
+                <span className="relative z-10 font-bold group-hover:text-black transition-colors duration-300">
+                  View Projects
+                </span>
+                <div className="absolute inset-0 bg-accent transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
+              </Link>
           </div>
         </div>
 

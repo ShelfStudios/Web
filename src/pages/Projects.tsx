@@ -1,10 +1,11 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { projects, TiltCard } from '../../components/Work';
 import Logo from '../../components/Logo';
 
-const Terms: React.FC = () => {
+const Projects: React.FC = () => {
   useEffect(() => window.scrollTo(0, 0), []);
-
+  
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -131,12 +132,54 @@ const Terms: React.FC = () => {
       cancelAnimationFrame(rafId);
     };
   }, []);
+  const cardEls = useRef<Record<number, HTMLDivElement | null>>({});
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const [activeMap, setActiveMap] = useState<Record<number, boolean>>({});
 
+  
+
+  // IntersectionObserver: mark cards as active when >50% visible
+  useEffect(() => {
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        setActiveMap((prev) => {
+          const next = { ...prev };
+          entries.forEach((entry) => {
+            const idStr = entry.target.getAttribute?.('data-project-id');
+            if (!idStr) return;
+            const id = parseInt(idStr, 10);
+            next[id] = (entry.intersectionRatio || 0) > 0.5;
+          });
+          return next;
+        });
+      },
+      { threshold: [0, 0.5, 1] }
+    );
+
+    return () => {
+      observerRef.current?.disconnect();
+      observerRef.current = null;
+    };
+  }, []);
+
+  const makeRegister = (id: number) => (el: HTMLDivElement | null) => {
+    const prev = cardEls.current[id];
+    if (prev && observerRef.current) observerRef.current.unobserve(prev);
+    if (el) {
+      cardEls.current[id] = el;
+      if (observerRef.current) observerRef.current.observe(el);
+    } else {
+      delete cardEls.current[id];
+    }
+  };
 
   return (
-    <section id="terms" className="relative bg-black min-h-screen overflow-visible">
+    <section id="projects" className="relative bg-black min-h-screen md:h-screen overflow-visible">
       <canvas ref={canvasRef} className="absolute left-0 top-0 w-full z-0 opacity-40 pointer-events-none" />
-      <div className="relative z-10 max-w-4xl mx-auto px-6 pt-8 md:pt-12 pb-12 md:pb-20">
+      {/* Page-specific CSS overrides to remove card shadow on this page only */}
+      <style>{`#projects .shadow-2xl{box-shadow:none !important;} #projects .bg-studio-zinc{background:transparent !important;}`}</style>
+
+      <div className="relative z-10 max-w-6xl mx-auto px-6 pt-8 md:pt-12 pb-12 md:pb-20">
         <div className="transition-fade">
           <header className="flex items-center justify-between mb-8">
             <div className="flex items-center">
@@ -144,68 +187,30 @@ const Terms: React.FC = () => {
             </div>
             <nav className="flex items-center gap-6">
               <Link to="/" className="text-gray-200 hover:text-accent">Home</Link>
-              <Link to="/projects" className="text-accent font-medium">Projects</Link>
             </nav>
           </header>
-          <h1 className="text-4xl font-serif italic text-white mb-4">Terms of Use</h1>
-          <p className="text-sm text-gray-400 mb-6">Effective date: December 02, 2025</p>
+          <h1 className="text-5xl md:text-6xl font-serif italic text-white mb-4">Projects</h1>
+          <p className="text-gray-400 max-w-2xl">All projects uploaded to the website :)</p>
 
-          <section className="mb-6 text-gray-300">
-            <h2 className="text-xl text-white mb-2">1. Acceptance of Terms</h2>
-            <p>By accessing or using the ShelfStudios website (the "Site"), you agree to be bound by these Terms of Use ("Terms"). If you do not agree to these Terms, please do not use the Site.</p>
-          </section>
+          <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+            {projects.map((project, idx) => {
+              let override: string | undefined = undefined;
+              // Explicit override for LinkTree project to use 'Project Card 2.png'
+              if (project.title === 'LinkTree' || project.id === 2) {
+                override = new URL('../../Projects/Linktree/Project Card 2.png', import.meta.url).href;
+              } else if (project.imageUrl.includes('Project Card.png')) {
+                override = project.imageUrl.replace('Project Card.png', 'Project Card 2.png');
+              }
 
-          <section className="mb-6 text-gray-300">
-            <h2 className="text-xl text-white mb-2">2. Using the Site</h2>
-            <p>You may use the Site for lawful purposes and in accordance with these Terms. You agree not to use the Site in any way that violates applicable laws or regulations or that infringes the rights of others.</p>
-          </section>
+              return (
+                <div key={project.id} className="w-full flex justify-center">
+                  <TiltCard project={project} idx={idx} isActive={false} compact disableGreyscale hideArrow imageOverride={override} hideOverlay />
+                </div>
+              );
+            })}
+          </div>
 
-          <section className="mb-6 text-gray-300">
-            <h2 className="text-xl text-white mb-2">3. Intellectual Property</h2>
-            <p>All content on the Site, including text, images, graphics, logos, and software, is the property of ShelfStudios or its licensors and is protected by copyright, trademark and other laws. You may not copy, reproduce, distribute, or create derivative works from Site content except as expressly permitted by ShelfStudios.</p>
-          </section>
-
-          <section className="mb-6 text-gray-300">
-            <h2 className="text-xl text-white mb-2">4. User Content</h2>
-            <p>Any content you submit to the Site ("User Content") remains your responsibility. By submitting User Content you grant ShelfStudios a non-exclusive, worldwide, royalty-free license to use, reproduce, modify and display that content as reasonably necessary to operate the Site and provide related services.</p>
-          </section>
-
-          <section className="mb-6 text-gray-300">
-            <h2 className="text-xl text-white mb-2">5. Links to Third Parties</h2>
-            <p>The Site may contain links to third-party websites. ShelfStudios does not endorse and is not responsible for the content or practices of third-party sites. Your interactions with third-party sites are at your own risk.</p>
-          </section>
-
-          <section className="mb-6 text-gray-300">
-            <h2 className="text-xl text-white mb-2">6. Disclaimers</h2>
-            <p>The Site and its content are provided on an "as is" and "as available" basis. ShelfStudios makes no warranties, express or implied, regarding accuracy, reliability, availability, or fitness for a particular purpose.</p>
-          </section>
-
-          <section className="mb-6 text-gray-300">
-            <h2 className="text-xl text-white mb-2">7. Limitation of Liability</h2>
-            <p>To the fullest extent permitted by law, ShelfStudios and its officers, directors, employees or agents shall not be liable for any indirect, incidental, special, consequential or punitive damages arising from your access to or use of the Site.</p>
-          </section>
-
-          <section className="mb-6 text-gray-300">
-            <h2 className="text-xl text-white mb-2">8. Indemnification</h2>
-            <p>You agree to indemnify, defend and hold harmless ShelfStudios from any claims, losses, liabilities, damages, and expenses (including reasonable legal fees) arising out of your use of the Site or any violation of these Terms.</p>
-          </section>
-
-          <section className="mb-6 text-gray-300">
-            <h2 className="text-xl text-white mb-2">9. Governing Law</h2>
-            <p>These Terms are governed by and construed in accordance with the laws of the United Kingdom, and you agree to submit to the exclusive jurisdiction of the courts in that jurisdiction for any disputes.</p>
-          </section>
-
-          <section className="mb-6 text-gray-300">
-            <h2 className="text-xl text-white mb-2">10. Changes to Terms</h2>
-            <p>We may update these Terms from time to time. When changes are significant, we will make reasonable efforts to provide notice. Continued use of the Site after changes constitutes acceptance of the updated Terms.</p>
-          </section>
-
-          <section className="mb-6 text-gray-300">
-            <h2 className="text-xl text-white mb-2">11. Contact</h2>
-            <p>If you have questions about these Terms, please contact us at <a className="text-accent" href="mailto:cadan@shelfstudios.uk">cadan@shelfstudios.uk</a>.</p>
-          </section>
-
-          <div className="mt-8">
+          <div className="mt-12">
             <Link to="/" className="text-accent">← Back to home</Link>
           </div>
         </div>
@@ -214,4 +219,4 @@ const Terms: React.FC = () => {
   );
 };
 
-export default Terms;
+export default Projects;
